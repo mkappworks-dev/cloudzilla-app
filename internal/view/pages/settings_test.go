@@ -3,6 +3,7 @@ package pages_test
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -201,7 +202,7 @@ func TestSettings_TokenFormOffersEveryScopeAndRequiresOne(t *testing.T) {
 	form := out[start:]
 	form = form[:strings.Index(form, "</form>")]
 
-	for _, s := range model.Scopes {
+	for _, s := range append(slices.Clone(model.Scopes), model.PackageScopes...) {
 		if !strings.Contains(form, `value="`+s+`"`) || !strings.Contains(form, model.ScopeDescription(s)) {
 			t.Errorf("token form does not offer %s with its description", s)
 		}

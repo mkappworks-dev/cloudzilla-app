@@ -50,13 +50,13 @@ An older server without the endpoint answers `404`, and `cz` points you to `--wi
 personal access token under your account settings with the scopes from [the table below](#scopes-per-command) and pipe
 it in.
 
-| Flag                 | Effect                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                                                                              |
-| `--scope S`          | Scope to request: `repo:read`, `repo:write`, `issues:write`, `pulls:write`. Repeatable or space-separated; default `repo:write` |
-| `--no-browser`       | Print the URL and code without opening a browser                                                                                |
-| `--with-token`       | Skip the browser: read a personal access token from stdin                                                                       |
-| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain                                                                     |
+| Flag                 | Effect                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                                                                                                                 |
+| `--scope S`          | Scope to request: `repo:read`, `repo:write`, `issues:write`, `pulls:write`, `packages:read`, `packages:write`. Repeatable or space-separated; default `repo:write` |
+| `--no-browser`       | Print the URL and code without opening a browser                                                                                                                   |
+| `--with-token`       | Skip the browser: read a personal access token from stdin                                                                                                          |
+| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain                                                                                                        |
 
 `cz auth status` fails when nobody is logged in.
 
@@ -92,19 +92,40 @@ shows only public repositories, run `cz auth status`: it verifies the token and 
 A token acts as its user but only on the routes its scopes admit ([Token Scopes](./access-control.md#token-scopes)).
 When the server answers `403 insufficient_scope`, `cz` prints the scope from the `WWW-Authenticate` header.
 
-| Command                               | Scope needed                                                 |
-| ------------------------------------- | ------------------------------------------------------------ |
-| `cz auth login`, `status`             | any scope (calls `GET /api/user`)                            |
-| `cz auth logout`                      | none; removes the local login only                           |
-| `cz repo list`, `view`                | `repo:read`                                                  |
-| `cz repo create`, `fork`              | `repo:write`                                                 |
-| `cz repo clone`                       | `repo:read` (git fetch)                                      |
-| `cz issue list`, `view`               | `repo:read`                                                  |
-| `cz issue create`, `comment`, `close` | `issues:write` (or `repo:write`)                             |
-| `cz pr list`, `view`                  | `repo:read`                                                  |
-| `cz pr create`, `close`, `review`     | `pulls:write` (or `repo:write`)                              |
-| `cz pr merge`                         | `repo:write`. `pulls:write` can't merge or enable auto-merge |
-| `cz api <METHOD> <path>`              | whatever the request needs                                   |
+| Command                               | Scope needed                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------- |
+| `cz auth login`, `status`             | any scope (calls `GET /api/user`)                                               |
+| `cz auth logout`                      | none; removes the local login only                                              |
+| `cz repo list`, `view`                | `repo:read`                                                                     |
+| `cz repo create`, `fork`              | `repo:write`                                                                    |
+| `cz repo clone`                       | `repo:read` (git fetch)                                                         |
+| `cz issue list`, `view`               | `repo:read`                                                                     |
+| `cz issue create`, `comment`, `close` | `issues:write` (or `repo:write`)                                                |
+| `cz pr list`, `view`                  | `repo:read`                                                                     |
+| `cz pr create`, `close`, `review`     | `pulls:write` (or `repo:write`)                                                 |
+| `cz pr merge`                         | `repo:write`. `pulls:write` can't merge or enable auto-merge                    |
+| `cz api <METHOD> <path>`              | whatever the request needs                                                      |
+| (no command) `docker`, `curl`         | `packages:read` to pull or download, `packages:write` to push, upload or delete |
+
+## Packages
+
+`cz` has no package commands and no OCI code; it only mints the token (see [package-registry](./package-registry.md)).
+`cz auth login --scope packages:write` stores a personal access token that the registry accepts, and `docker` or `curl`
+then use it as the password:
+
+```bash
+cz auth login --host https://git.example.com --scope packages:write --insecure-storage
+docker login git.example.com -u <username>   # the password is the token in credentials.json
+docker push git.example.com/<owner>/<image>:1.0.0
+```
+
+`cz` has no command that prints the token. `--insecure-storage` puts it in [`credentials.json`](#where-the-token-lives),
+where you can read it; from the OS keychain you have to fetch it with the system tool. To skip that, create a token with
+the scope under Settings, Access tokens.
+
+`packages:read` pulls images and downloads generic files; `packages:write` also pushes, uploads and deletes. The two
+scopes stand alone: a `repo:*` scope never admits a package route, and a package scope admits nothing else. See
+[Token Scopes](./access-control.md#token-scopes) for the exact routes.
 
 ## Repositories, issues and pull requests
 

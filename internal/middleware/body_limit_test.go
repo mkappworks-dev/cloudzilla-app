@@ -270,6 +270,14 @@ func TestIsStreamedUpload(t *testing.T) {
 		{http.MethodPost, "/api/repos/o/r/releases/7/assets/1", false},
 		{http.MethodPost, "/api/repos/o/r/issues/7/assets", false},
 		{http.MethodPost, "/o/r/new/main", false},
+		{http.MethodPatch, "/v2/o/img/blobs/uploads/abc", true},
+		{http.MethodPut, "/v2/o/img/blobs/uploads/abc", true},
+		{http.MethodPost, "/v2/o/img/blobs/uploads/", true},
+		{http.MethodGet, "/v2/o/img/blobs/sha256:abc", false},
+		{http.MethodPut, "/api/repos/o/r/packages/generic/tool/1.0/a.bin", true},
+		{http.MethodGet, "/api/repos/o/r/packages/generic/tool/1.0/a.bin", false},
+		{http.MethodPut, "/api/repos/o/r/packages/generic/tool/1.0", false},
+		{http.MethodPut, "/api/repos/o/r/packages/other/tool/1.0/a.bin", false},
 	} {
 		if got := IsStreamedUpload(httptest.NewRequest(tc.method, tc.path, nil)); got != tc.want {
 			t.Errorf("%s %s = %v, want %v", tc.method, tc.path, got, tc.want)

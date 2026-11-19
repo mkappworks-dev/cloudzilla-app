@@ -145,6 +145,11 @@ func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository, 
 	} else {
 		logFail("releases", err)
 	}
+	if n, err := h.Services.Package.CountByRepo(ctx, repo.ID); err == nil {
+		counts["packages"] = n
+	} else {
+		logFail("packages", err)
+	}
 	return counts
 }
 

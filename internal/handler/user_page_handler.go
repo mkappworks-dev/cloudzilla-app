@@ -86,7 +86,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 
 	tab := r.URL.Query().Get("tab")
 	switch tab {
-	case "repositories", "stars", "gists":
+	case "repositories", "stars", "gists", "packages":
 	default:
 		tab = "overview"
 	}
@@ -190,6 +190,12 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		data = h.buildStarsTabData(r, data, username, page)
 	case "gists":
 		data = h.buildGistsTabData(r, data, user.ID, isOwn, page, gistsTotal)
+	case "packages":
+		if data.Packages, err = h.ownerPackagesData(r, user.Username); err != nil {
+			slog.Error("user profile: failed to load packages", "username", username, "error", err)
+			h.ServerError(w, r)
+			return
+		}
 	}
 
 	keys := map[string]string{user.Username: user.AvatarKey}
@@ -444,6 +450,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	tab := r.URL.Query().Get("tab")
 	showAllRepos := tab == "repositories"
 	showAllPeople := tab == "people"
+	showPackages := tab == "packages"
 
 	var pinned, recent []components.PinnedRepoData
 	featuredLimit, recentLimit := 4, 4
@@ -458,9 +465,18 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		recent = repoCards(highlights.Recent)
 	}
 
+	var packagesTab view.OwnerPackagesData
+	if showPackages {
+		if packagesTab, err = h.ownerPackagesData(r, org.Name); err != nil {
+			slog.Error("org profile: failed to load packages", "org", org.Name, "error", err)
+			h.ServerError(w, r)
+			return
+		}
+	}
+
 	var profileReadme template.HTML
 	for _, repo := range repos {
-		if !showAllRepos && !showAllPeople && repo.Name == org.Name && !repo.Private {
+		if !showAllRepos && !showAllPeople && !showPackages && repo.Name == org.Name && !repo.Private {
 			profileReadme = h.Services.Code.GetProfileReadme(r.Context(), org.Name, org.Name, repo.DefaultBranch)
 			break
 		}
@@ -481,6 +497,8 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		RecentRepos:   recent,
 		ShowAllRepos:  showAllRepos,
 		ShowAllPeople: showAllPeople,
+		ShowPackages:  showPackages,
+		Packages:      packagesTab,
 		TopLangs:      langBarItems(h.Services.Language.AggregateForOrg(r.Context(), repos, 5)),
 		ViewerRole:    viewerRole,
 		ViewerJoined:  viewerJoined,
@@ -630,9 +648,39 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		MemberCount:  len(members),
 		RepoCount:    len(repos),
 		QuotaSummary: h.quotaSummary(r.Context(), service.QuotaOwner{OrgID: org.ID}),
+		PackageUsage: h.packageUsage(r.Context(), service.QuotaOwner{OrgID: org.ID}),
 		AuditEntries: auditEntries,
 		Webhooks:     webhooks,
 		Teams:        teams,
 		Confirm:      h.confirmFactors(r, claims.UserID),
 	}))
+}
+
+// ownerPackagesData is the Packages tab of the profile of ownerName, a user or an organization. The path owner also
+// gets the packages sitting in Repositories they can't read, so they can delete or re-link them.
+func (h *Handler) ownerPackagesData(r *http.Request, ownerName string) (view.OwnerPackagesData, error) {
+	viewer := viewerOf(r)
+	all, err := h.Services.Package.ListByOwner(r.Context(), ownerName, viewer)
+	if err != nil {
+		return view.OwnerPackagesData{}, err
+	}
+	data := view.OwnerPackagesData{
+		Owner:       ownerName,
+		Total:       len(all),
+		Type:        r.URL.Query().Get("type"),
+		Repo:        r.URL.Query().Get("repo"),
+		RepoOptions: view.OwnerPackageRepos(all),
+	}
+	data.Packages = view.FilterOwnerPackages(all, data.Type, data.Repo)
+	if viewer != nil && h.Services.Package.IsPathOwner(r.Context(), ownerName, *viewer) {
+		data.CanManage = true
+		repos, err := h.Services.Repo.ListByOwnerVisibleTo(r.Context(), ownerName, viewer)
+		if err != nil {
+			return data, err
+		}
+		for _, repo := range repos {
+			data.Targets = append(data.Targets, repo.Name)
+		}
+	}
+	return data, nil
 }

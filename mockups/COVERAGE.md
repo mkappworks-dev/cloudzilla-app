@@ -33,20 +33,21 @@ statuses" card for external CI.
 
 ## Pages covered by a differently named mock
 
-| Mock                                      | Real page                                                        |
-| ----------------------------------------- | ---------------------------------------------------------------- |
-| `actions.html`                            | The repo Actions page, `actions.templ` (replaces `checks.templ`) |
-| `pr.html`                                 | `pull_detail.templ`                                              |
-| `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`                         |
-| `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                                        |
-| `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`                          |
-| `new_repo.html`                           | `repo_new.templ`                                                 |
-| `my_repositories.html`, `my_pulls.html`   | `account_repos.templ`, `account_pulls.templ`                     |
-| `my_issues.html`, `attention.html`        | `account_issues.templ`, `account_attention.templ`                |
-| `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`                           |
-| `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`                    |
-| `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                                     |
-| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open                 |
+| Mock                                      | Real page                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| `actions.html`                            | The repo Actions page, `actions.templ` (replaces `checks.templ`)         |
+| `pr.html`                                 | `pull_detail.templ`                                                      |
+| `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`                                 |
+| `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                                                |
+| `owner_packages.html`                     | The Packages tab of `user.templ` and `org.templ`, `owner_packages.templ` |
+| `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`                                  |
+| `new_repo.html`                           | `repo_new.templ`                                                         |
+| `my_repositories.html`, `my_pulls.html`   | `account_repos.templ`, `account_pulls.templ`                             |
+| `my_issues.html`, `attention.html`        | `account_issues.templ`, `account_attention.templ`                        |
+| `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`                                   |
+| `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`                            |
+| `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                                             |
+| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open                         |
 
 ## States with no mock
 
@@ -127,6 +128,11 @@ Some controls and forms have no behaviour. In particular:
   Request export moves the default row to requested. The real page shows the row the user's latest export is in.
 - **Mock-only state:** `org_settings.html?teams=none` shows the Teams empty state, and `org_team.html?viewer=member` the
   read-only page a member who is not an owner gets (no Repositories section: grants name private repositories).
+- **Mock-only state:** `owner_packages.html?state=list|manage|delete|relink` shows the tab to anyone but the path owner,
+  to the path owner (Delete and Re-link per row, and a package in a private repository they cannot read, named but not
+  linked), and the two dialogs. Delete and Re-link only toast. The org profile draws no tab of its own:
+  `org_profile.html` links to this page, which stands for an organization too. `account_settings.html` and
+  `org_settings.html` show the package line with a quota; the real pages show usage alone when the quota is `0`.
 - **Team grants:** the Repositories section of `org_team.html` changes and removes rows in the page only. The
   Collaborators card in `settings.html` shows two read-only "via team" rows, which the real page lists only for an
   organization repository.

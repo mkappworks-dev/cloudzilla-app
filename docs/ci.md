@@ -253,6 +253,23 @@ steps:
       DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
 ```
 
+### Publishing a generic package from a Job
+
+The `czj_` job token only fetches. To publish a file, create a personal access token with `packages:write`, store it as
+a secret, and send it with `curl`:
+
+```yaml
+steps:
+  - run:
+      curl -fsS -u "ci:$PACKAGES_TOKEN" -T app.tar.gz "$BASE/api/repos/ada/app/packages/generic/app/$VERSION/app.tar.gz"
+    env:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+```
+
+A writer can read a secret (see above), so use a token of a user who may only write the repositories it has to. See
+[api-reference](./api-reference.md#packages) and [package-registry](./package-registry.md). A Job container has no
+Docker daemon, so `docker push` from a Job is not possible; use `crane` or `skopeo` with the same secret.
+
 ### Fork pull requests
 
 A pull request whose head repository differs from its base creates a `waiting` Run: its Workflow file is stored but

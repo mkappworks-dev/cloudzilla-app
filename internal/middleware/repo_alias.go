@@ -101,7 +101,7 @@ func splitRepoPath(u *url.URL) (owner, name, rest string, ok bool) {
 	switch {
 	case segs[0] == "api" && len(segs) > 1 && segs[1] == "repos":
 		base = 2
-	case segs[0] == "api" || segs[0] == "static" || segs[0] == "avatars":
+	case segs[0] == "api" || segs[0] == "static" || segs[0] == "avatars" || segs[0] == "v2":
 		return "", "", "", false
 	}
 	if len(segs) < base+2 {

@@ -400,17 +400,25 @@ Open routes:
   `fork`, `projects`, `wiki`, `discussions`, `actions`. A few of these `GET`s return HTML fragments (e.g. the watch
   button, issue title/body sections) carrying the same data as the JSON.
 - `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
-- `GET /api/user` (exactly this path: `{id, username}` of the token's owner; every `/api/user/*` route stays closed),
-  `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
+- `GET /api/user` (exactly this path: `{id, username}` of the token's owner, for any scope including `packages:*`, so
+  `cz auth login` can verify a registry token; every `/api/user/*` route stays closed), `GET /api/users/{username}`,
+  `GET /api/users/{username}/repos`.
 - Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
 
-| Scope          | Admits on the open routes                                                                                                                                                                                 |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `repo:read`    | `GET`/`HEAD`, including CI runs, logs and artifacts under `.../actions/**`; git clone/fetch                                                                                                               |
-| `repo:write`   | Everything, including creating repos, merging, applying suggestions, git push, and cancelling, re-running and dispatching CI runs under `.../actions/**`                                                  |
-| `issues:write` | Reads, plus writes under `.../issues/**`                                                                                                                                                                  |
-| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, applying a suggestion, and updating the branch                                                                             |
-| `repo:admin`   | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else |
+| Scope            | Admits on the open routes                                                                                                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repo:read`      | `GET`/`HEAD`, including CI runs, logs and artifacts under `.../actions/**`; git clone/fetch                                                                                                                   |
+| `repo:write`     | Everything, including creating repos, merging, applying suggestions, git push, and cancelling, re-running and dispatching CI runs under `.../actions/**`                                                      |
+| `issues:write`   | Reads, plus writes under `.../issues/**`                                                                                                                                                                      |
+| `pulls:write`    | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, applying a suggestion, and updating the branch                                                                                 |
+| `packages:read`  | Personal access tokens and device logins only: `GET`/`HEAD` under `/api/repos/{owner}/{repo}/packages`, and the generic download `/{owner}/{repo}/packages/generic/{name}/{version}/{filename}`. Nothing else |
+| `packages:write` | Personal access tokens and device logins only: `packages:read`, plus writes under `/api/repos/{owner}/{repo}/packages`. Nothing else                                                                          |
+| `repo:admin`     | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else     |
+
+The packages scopes stand alone: a `repo:*` scope never admits a `packages` route, `packages:write` admits reads as
+`repo:write` does (`docker push` asks for `pull,push` together), and neither package scope admits anything outside
+`packages`. They are not in `model.Scopes`, which is also the OAuth consent list, so an OAuth app that requests one gets
+`invalid_scope`; `model.PackageScopes` holds them, and `IsDeviceScope` and `IsTokenScope` accept them.
 
 The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth
 path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): fetching needs a read scope and pushing
@@ -840,11 +848,12 @@ OAuth-app tokens.
 
 Usernames and organization names are repository path segments, so a new one must match
 `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively:
-`activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static terms topic unread-count verify-email`
-(`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from
-the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the
-username from the display name (falling back to the email's local part, then `user`) by dropping other characters;
-LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
+`activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static terms topic unread-count v2 verify-email`
+(`v2` is the container registry's prefix; startup logs a warning naming an existing account called `v2`, which is
+unreachable at its old URL. `service.ValidateOwnerName`, checked only on create; a router test fails if a top-level
+route segment is missing from the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else.
+Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by
+dropping other characters; LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
 
 Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`), compared case-insensitively, so
 `Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement
@@ -1242,6 +1251,67 @@ that owns the project, else 404) before the service check.
 | POST   | `/{owner}/{repo}/git-upload-pack`  | optAuthMW       | gitReadableRepo                                 | GitUploadPack  |
 | POST   | `/{owner}/{repo}/git-receive-pack` | optAuthMW       | gitReadableRepo + CanWrite                      | GitReceivePack |
 | SSH    | port 2222                          | Public key auth | CanRead (missing-repo error), CanWrite for push | SSH server     |
+
+### Container Registry (`/v2`)
+
+The whole registry, including its linking rules and operations, is in [package-registry](./package-registry.md); this
+section holds the routes and the auth and status-code decisions.
+
+| Method | Path                   | Auth                                           | AuthZ Check                                   | Handler       |
+| ------ | ---------------------- | ---------------------------------------------- | --------------------------------------------- | ------------- |
+| GET    | `/v2/token`            | Basic `czp_` PAT (or none, for anonymous pull) | Access list = request ∩ CanRead/CanWrite      | RegistryToken |
+| \*     | `/v2/`, `/v2/{name}/…` | `Authorization: Bearer <registry token>`       | Token's access list names the name and action | Registry      |
+
+The registry does not use `authMW`, sessions or CSRF. `docker login` sends a `czp_` personal access token (never an
+account password) as the Basic password to `GET /v2/token`, which answers with a five-minute JWT (`token` and
+`access_token`, `expires_in`, `issued_at`). The JWT is signed with a key derived from `auth.jwt_secret` and a purpose
+label, carries `aud` (the host of `server.base_url`) and `typ: registry`, and is refused as a session cookie or a Bearer
+on every other route. It may outlive a revoked PAT by its five minutes. `registry.enabled: false` makes the whole tree
+`404`, and every response carries `Docker-Distribution-API-Version: registry/2.0`.
+
+| Where       | Case                                                                                       | Answer                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `/v2/token` | A wrong or missing PAT for a non-public scope, or an account password                      | `401` with `WWW-Authenticate: Basic realm="registry"`                           |
+| `/v2/token` | A valid PAT without `packages:read` or `packages:write`, a key-bound PAT, a suspended user | `403` `DENIED` naming the reason                                                |
+| `/v2/token` | Valid credentials with no access to a requested name                                       | `200` with that name missing from the access list                               |
+| `/v2/token` | No credentials                                                                             | `200` with `pull` on public Repositories' images only; any other scope is `401` |
+| `/v2/*`     | No token, an expired or tampered one                                                       | `401` with `Bearer realm,service[,scope],error="invalid_token"`                 |
+| `/v2/*`     | A token whose access list lacks the action the request needs                               | `401` with `scope` and `error="insufficient_scope"`                             |
+| `/v2/*`     | An invalid name; `/v2/_catalog`                                                            | `400` `NAME_INVALID`; `404`                                                     |
+
+The access list is the request intersected with `CanRead` (`pull`) and `CanWrite` (`push`, `delete`) on the Repository
+the image is linked to, capped by the PAT: `packages:read` allows `pull`, `packages:write` all three. A name with no
+linked image grants `pull`, `push` and `delete` (a writer may drop a blob it uploaded before a manifest linked the name,
+and with no package it deletes nothing) to a caller with `CanWrite` on any Repository of the path owner, or who holds a
+pending package there. Because a reader's `push` is dropped from the list, a request for it is `401`, which docker shows
+as "unauthorized". The path's first segment is the owner (a user, then an organization, ignoring case); the rest is the
+image name, parsed from the right so it may contain segments called `blobs`, `manifests`, `tags` or `referrers`.
+
+#### Manifests, tags and linking
+
+A manifest push (`PUT /v2/{name}/manifests/{ref}`) stores the exact bytes (up to 4 MiB; OCI and Docker v2, image and
+index) and answers `201` with `Location` and `Docker-Content-Digest`. Every blob and child it names must be linked to
+the package, or it is `MANIFEST_BLOB_UNKNOWN`. The first manifest push to a pending package links it to a Repository,
+and a push to a linked package needs `CanWrite` on that Repository:
+
+1. A Repository of the path owner named like the image's first path segment wins, whatever the label says, and needs
+   `CanWrite`; without it the push is `403` `DENIED`. A pusher who can't read it gets the refusal of step 3, and the
+   label is not consulted, so a private Repository's name neither leaks nor can be claimed.
+2. Otherwise the config's `org.opencontainers.image.source` label names a Repository of the path owner (`owner/repo`, or
+   a URL on `server.base_url`; a `.git` suffix, a trailing `/`, a path below the Repository and the host's case are
+   ignored, another host's URL is not read) on which the caller has `CanManage`. A config over 1 MiB is not read.
+3. Otherwise `403` `DENIED` with a message naming both routes, which docker prints as `error from registry: …`.
+
+`DELETE …/manifests/{tag}` removes only the tag; `DELETE …/manifests/{digest}` removes the manifest and its tags and is
+`409` `DENIED` while an index names it. `DELETE …/blobs/{digest}` removes the package's link and is `409` `DENIED` while
+a manifest names the blob; the object stays for the sweep. All three need `CanWrite` and the token's `delete` action.
+`GET`/`HEAD …/manifests/{ref}` return the stored `Content-Type` and `404` `MANIFEST_UNKNOWN` when an `Accept` header
+excludes it. `GET …/tags/list` lists every tag in byte order, with `n`, `last` and a `Link: …; rel="next"` header; a
+package the caller cannot read is `NAME_UNKNOWN`.
+
+`/v2` is not in `RequireSetup`'s allow-list: before setup it redirects to `/setup`, as git transport does. Rate limits:
+`/v2/*` is the `registry` resource, per registry-token user (per IP when anonymous, and for a token that does not
+verify); `/v2/token` is `core`, per PAT user.
 
 ### Notification Endpoints (Own Data Only)
 

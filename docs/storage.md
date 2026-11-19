@@ -91,6 +91,7 @@ releases/repo/<repo id>/<release id>/<token>.bin
 exports/<user id>/<export id>.zip
 ci/logs/repo/<repo id>/job/<job id>/<seq>-<token>.log
 ci/artifacts/repo/<repo id>/run/<run id>/<token>.zip
+registry/<64 hex digits of the blob's sha256>
 ```
 
 - `users.avatar_key` and `organizations.avatar_key` hold the full key, or `''` for none.
@@ -168,6 +169,19 @@ missing ones. Responses carry `Cache-Control: private, no-cache` with an `ETag` 
 check), `Vary: Authorization, Cookie`, `nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`. Unlike
 avatars they can't be cached `public` or served by a CDN. `attachments` is a reserved owner name.
 
+## Generic package files
+
+`PUT /api/repos/{owner}/{repo}/packages/generic/{name}/{version}/{filename}` stores the request body as one object
+(`packages/generic/repo/{repoID}/{random token}.bin`, never the user's names). The flow follows release assets: the body
+spools to a temp file while its SHA-256 is computed, the object is put with its exact size, then the row is written; a
+failed row removes the object. Unlike release assets the size cap (`packages.max_file_bytes`) and the package quota are
+enforced as bytes arrive, and the package, version and file rows are created in one transaction, so a refused upload
+leaves nothing. The route is a streamed upload (`middleware.IsStreamedUpload`) and the handler clears the server
+deadlines. Deleting a file or version deletes its objects after the rows are gone; a failed object delete is logged and
+leaves an orphan under `packages/generic/` that no `package_files.storage_key` names. Purging a repository or deleting a
+user or organization reads the keys first, lets the cascade drop the rows, then deletes the objects after the commit; a
+failed delete is logged and leaves an orphan, as for release assets. See [api-reference](./api-reference.md#packages).
+
 ## Release assets
 
 A writer uploads a file to a release with `POST /api/repos/{owner}/{repo}/releases/{id}/assets` (multipart field `file`,
@@ -228,6 +242,36 @@ Job output and `artifacts:` archives from built-in CI ([ci](./ci.md#logs-and-art
   hourly sweep does that too, so a missed delete is only late.
 - A failed object delete is logged and leaves an orphan: any object under `ci/` that no `workflow_log_chunks` or
   `workflow_artifacts` row names is safe to delete.
+
+## Registry blobs
+
+The registry as a whole is described in [package-registry](./package-registry.md); this section is the object layout.
+
+Container image layers and configs live under `registry/`, one object per digest, shared by every package. The key is
+the hex digest only, so it always passes the key check. Which package may read a blob is decided by `package_blobs` link
+rows, never by the object existing: knowing a digest grants nothing.
+
+- Uploads spool to a temp file under `os.TempDir()/cloudzilla-registry-spool`, then the object is put with its exact
+  size (S3 needs it). `main.go` empties that directory at startup and drops every `package_upload_sessions` row, so a
+  restart loses in-flight uploads: the client starts again. The spool needs room for the user's in-flight bytes
+  (`registry.max_inflight_bytes_per_user`, 10 GiB by default).
+- The sha256 is computed when the upload is committed, by reading the spool file once more, because chunks arrive in
+  separate requests.
+- `Backend` has no ranged read, so a blob `Range` request reads and discards the bytes before the range.
+- A link is written under `FOR SHARE` on the `registry_blobs` row. If the row is missing the object is put first and the
+  row inserted, so a sweep that deleted the row cannot leave a link without an object.
+- An object whose `registry_blobs` row is gone is an orphan and safe to delete.
+- Deleting a tag, manifest or whole package, purging a repository and deleting an account only remove rows: links go by
+  cascade, objects are never deleted inline. `RegistryGCService.Sweep` runs hourly (`registry.sweep` in `main.go`, also
+  when `registry.enabled` is false) in four steps over batches of 500: it drops expired pending packages and upload
+  sessions with their spool files and links no manifest of the package names that are older than `registry.gc_grace`;
+  stamps `unlinked_at` on blobs with no link; then, per blob stamped more than a grace ago, locks the row
+  `FOR UPDATE SKIP LOCKED`, re-checks that no link exists, deletes the object and then the row in one transaction. A
+  blob of an aborted push is therefore deleted after two graces. A failed object delete rolls that blob back and the
+  next run retries it.
+- Download counts (`package_manifests.pull_count`, `package_tags.pull_count`) are kept in memory, one per manifest `GET`
+  by tag or digest (not `HEAD`, not blobs), flushed every minute and after the HTTP server stops at shutdown; a crash
+  loses the unflushed batch.
 
 ## Account export
 

@@ -272,6 +272,9 @@ func TestValidateDeviceScopes(t *testing.T) {
 	if got, err := ValidateDeviceScopes(nil); err != nil || strings.Join(got, " ") != "repo:write" {
 		t.Errorf("default = %v, %v", got, err)
 	}
+	if got, err := ValidateDeviceScopes([]string{"packages:write packages:read"}); err != nil || strings.Join(got, " ") != "packages:write packages:read" {
+		t.Errorf("package scopes = %v, %v", got, err)
+	}
 	for _, bad := range []string{"repo:admin", "nope"} {
 		_, err := ValidateDeviceScopes([]string{bad})
 		if err == nil || !strings.Contains(err.Error(), bad) || strings.Contains(err.Error(), "\n") {

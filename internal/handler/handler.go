@@ -30,7 +30,11 @@ func New(services *service.Services, cfg *config.Config) *Handler {
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
+	writeJSONAs(w, status, "application/json", v)
+}
+
+func writeJSONAs(w http.ResponseWriter, status int, contentType string, v any) {
+	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }

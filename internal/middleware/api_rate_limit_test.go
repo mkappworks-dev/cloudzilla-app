@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 // tokenTable validates PATs and OAuth tokens from a map of raw token to user ID,
@@ -103,6 +104,10 @@ func TestClassifyRequest(t *testing.T) {
 		{"GET", "/htmx.min.js", "", false},
 		{"GET", "/alpine.min.js", "", false},
 		{"GET", "/favicon.ico", "", false},
+		{"GET", "/v2/", ResourceRegistry, true},
+		{"HEAD", "/v2/acme/app/blobs/sha256:abc", ResourceRegistry, true},
+		{"PATCH", "/v2/acme/app/blobs/uploads/1", ResourceRegistry, true},
+		{"GET", "/v2/token", ResourceCore, true},
 	} {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
 			resource, counted := classifyRequest(httptest.NewRequest(tc.method, tc.path, nil))
@@ -317,5 +322,64 @@ func TestValidatePAT_ReusesTheLimitersResult(t *testing.T) {
 	serve(h, req)
 	if tokens.lookups != 1 || user == nil || user.ID != 7 {
 		t.Errorf("want one lookup resolving user 7, got %d lookups and %+v", tokens.lookups, user)
+	}
+}
+
+// registryTokens verifies "good-<id>" as a registry token for user id and anything else as invalid.
+type registryTokens struct{}
+
+func (registryTokens) VerifyToken(raw string) (*service.RegistryClaims, error) {
+	id, ok := strings.CutPrefix(raw, "good-")
+	if !ok {
+		return nil, service.ErrRegistryToken
+	}
+	n, _ := strconv.ParseInt(id, 10, 64)
+	return &service.RegistryClaims{UserID: n}, nil
+}
+
+func TestAPIRateLimit_RegistryRequestsCountPerUserAndNeverLookUpOAuth(t *testing.T) {
+	clock := &fakeClock{t: time.Unix(1_000_000, 0)}
+	tokens := &tokenTable{users: map[string]int64{"oauth-token": 9}}
+	l := newTestAPILimiter(map[string]RateBudget{ResourceRegistry: {Authenticated: 2, Anonymous: 1}}, tokens, clock)
+	l.cfg.Registry = registryTokens{}
+	h := l.middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	get := func(bearer, ip string) int {
+		req := request("GET", "/v2/acme/app/tags/list", ip)
+		if bearer != "" {
+			req.Header.Set("Authorization", "Bearer "+bearer)
+		}
+		return serve(h, req).Code
+	}
+
+	if a, b, c := get("good-1", "10.0.0.1"), get("good-1", "10.0.0.2"), get("good-1", "10.0.0.3"); a != 204 || b != 204 || c != 429 {
+		t.Errorf("one user over three addresses: %d %d %d, want 204 204 429", a, b, c)
+	}
+	if got := get("good-2", "10.0.0.1"); got != 204 {
+		t.Errorf("another user: got %d, want 204 from its own bucket", got)
+	}
+	if a, b := get("", "10.0.0.5"), get("", "10.0.0.5"); a != 204 || b != 429 {
+		t.Errorf("anonymous from one address: %d %d, want 204 429", a, b)
+	}
+	if a, b := get("not-a-registry-token", "10.0.0.6"), get("oauth-token", "10.0.0.6"); a != 204 || b != 429 {
+		t.Errorf("unverified tokens share their address's bucket: %d %d, want 204 429", a, b)
+	}
+	if tokens.lookups != 0 {
+		t.Errorf("%d token lookups, want none: a registry request must not cost an OAuth read", tokens.lookups)
+	}
+}
+
+func TestAPIRateLimit_ATokenRequestIsKeyedOnThePATsUser(t *testing.T) {
+	clock := &fakeClock{t: time.Unix(1_000_000, 0)}
+	tokens := &tokenTable{users: map[string]int64{"czp_alice": 1}}
+	l := newTestAPILimiter(map[string]RateBudget{ResourceCore: {Authenticated: 2, Anonymous: 1}}, tokens, clock)
+	h := l.middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	get := func(ip string) int {
+		req := request("GET", "/v2/token", ip)
+		req.SetBasicAuth("docker", "czp_alice")
+		return serve(h, req).Code
+	}
+
+	if a, b, c := get("10.0.0.1"), get("10.0.0.2"), get("10.0.0.3"); a != 204 || b != 204 || c != 429 {
+		t.Errorf("got %d %d %d over three addresses, want 204 204 429", a, b, c)
 	}
 }

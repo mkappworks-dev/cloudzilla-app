@@ -48,6 +48,7 @@ func TestRepoSubnav_RendersAllTabsWithHrefs(t *testing.T) {
 		{"Projects", "/alice/demo/projects"},
 		{"Wiki", "/alice/demo/wiki"},
 		{"Releases", "/alice/demo/releases"},
+		{"Packages", "/alice/demo/packages"},
 		{"Settings", "/alice/demo/settings"},
 	}
 	for _, c := range cases {
@@ -74,7 +75,7 @@ func TestRepoSubnav_MarksOnlyActiveTab(t *testing.T) {
 	if !strings.Contains(active, "Pull requests") {
 		t.Errorf("expected active tab to contain 'Pull requests'; active region: %q", active)
 	}
-	for _, wrong := range []string{"Code", "Issues", "Discussions", "Projects", "Wiki", "Releases", "Settings"} {
+	for _, wrong := range []string{"Code", "Issues", "Discussions", "Projects", "Wiki", "Releases", "Packages", "Settings"} {
 		if strings.Contains(active, wrong) {
 			t.Errorf("active region should not contain %q; got: %q", wrong, active)
 		}

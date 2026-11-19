@@ -2333,56 +2333,33 @@ _Container registry, Git LFS, built-in CI, clustering, and GraphQL API._
 
 _First-class artifact hosting alongside source code._
 
-### Phase 16.1 — Container Registry (Docker)
+### Phase 16.1 — Container Registry (Docker) ✅
 
-**Migration** (`114_create_container_registry.sql`):
+**Migration** (`142_package_registry.sql`, shared with 16.2): `packages` (path owner, type, name, linked Repository,
+nullable while pending), `registry_blobs`, `package_blobs` link rows, `package_manifests` with their blob and child
+reference rows, `package_tags` and `package_upload_sessions`.
 
-```sql
-CREATE TABLE container_images (
-    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    repo_id    BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
-    name       TEXT NOT NULL,   -- image name (e.g. 'myapp')
-    tag        TEXT NOT NULL,
-    digest     TEXT NOT NULL,   -- sha256 manifest digest
-    size_bytes BIGINT NOT NULL DEFAULT 0,
-    media_type TEXT NOT NULL DEFAULT '',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(repo_id, name, tag)
-);
-```
-
-Implements the OCI Distribution Specification v1.1 API (`/v2/...`) for push and pull. Blob storage is on-disk under
-`<ReposRoot>/../registry/blobs/sha256/`. Authentication uses the existing JWT/PAT bearer tokens.
-`GET /{owner}/{repo}/packages/container` lists images and tags. Container images pushed via `docker push` are stored and
-served without any external registry.
+The Instance serves the OCI Distribution v1.1 API at `/v2/`. `docker login` sends a `czp_` token carrying the new
+`packages:read` or `packages:write` scope to `GET /v2/token` and gets a five-minute registry JWT; images live at
+`{host}/{owner}/{name}` and link to a Repository at the first manifest push (an image named like a Repository, else the
+`org.opencontainers.image.source` label). Pull needs `CanRead` and push and delete need `CanWrite` on the linked
+Repository, so visibility follows it. Blobs are shared, content-addressed objects on the storage `Backend`; an hourly
+sweep reclaims what no link names. Tags, referrers, cross-package mount, multi-platform indexes and a `registry` rate
+limit are in. Verified with a real Docker client and the OCI conformance suite. See
+[package-registry](./package-registry.md).
 
 ---
 
-### Phase 16.2 — Generic Package Registry
+### Phase 16.2 — Generic Package Registry ✅
 
-**Migration** (`115_create_packages.sql`):
+**Migration** (`142_package_registry.sql`): the same migration adds `package_versions` and `package_files`.
 
-```sql
-CREATE TABLE packages (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    repo_id     BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
-    type        TEXT NOT NULL,   -- 'generic', 'npm', 'pypi', 'maven'
-    name        TEXT NOT NULL,
-    version     TEXT NOT NULL,
-    filename    TEXT NOT NULL,
-    size_bytes  BIGINT NOT NULL DEFAULT 0,
-    checksum    TEXT NOT NULL DEFAULT '',
-    created_by  BIGINT REFERENCES users(id),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(repo_id, type, name, version)
-);
-```
-
-Supports generic file uploads for any package type. Provides upload
-(`PUT /api/packages/{owner}/{repo}/{name}/{version}/{filename}`) and download
-(`GET /packages/{owner}/{repo}/{name}/{version}/{filename}`) endpoints. Package files stored on disk under
-`<ReposRoot>/../packages/`. `GET /{owner}/{repo}/packages` lists all packages. Future sub-phases can add type-specific
-protocol support (npm registry proxy, PyPI simple API, etc.).
+`PUT /api/repos/{owner}/{repo}/packages/generic/{name}/{version}/{filename}` stores one file with its SHA-256 (512 MiB
+cap, re-upload `409`); `GET /{owner}/{repo}/packages/generic/…` downloads it. A Packages tab on each Repository and on
+the owner's profile lists container and generic packages, the package page shows tags, digests, platforms, files and a
+pull command, and a path owner can delete or re-link a package. `quota.{user,org}.package_bytes` caps an owner's package
+storage and settings shows the usage. Other ecosystems (npm, PyPI, Maven) are future work; `packages.type` carries the
+discriminator. See [package-registry](./package-registry.md).
 
 ---
 
@@ -2701,8 +2678,8 @@ Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Play
 | 15.1  | Advanced Code Search                                  | ✅ Done    | 052          |
 | 15.2  | Explore / Trending                                    | ✅ Done    | —            |
 | 15.3  | Dependency Graph                                      | ✅ Done    | 053          |
-| 16.1  | Container Registry (Docker)                           | ⬜ Planned | 114          |
-| 16.2  | Generic Package Registry                              | ⬜ Planned | 115          |
+| 16.1  | Container Registry (Docker)                           | ✅ Done    | 142          |
+| 16.2  | Generic Package Registry                              | ✅ Done    | 142          |
 | 16.3  | Release Asset Enhancements                            | ⬜ Planned | —            |
 | 17.1  | Git LFS Support                                       | ⬜ Planned | 116          |
 | 17.2  | Signed Commit Verification (GPG/SSH)                  | ✅ Done    | 130, 131     |

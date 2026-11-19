@@ -216,10 +216,10 @@ both. Session-only. A key belongs to one account instance-wide. How commits are 
 
 ## Personal Access Tokens
 
-| Method | Path                   | Auth     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `signing_key`, `targets` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key, hardware `sk-` keys included; see [signed requests](#signed-requests)), `targets` (`repo:admin` only: `owner/repo` or `org`, one per line or comma-separated, each one you administer), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
-| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Method | Path                   | Auth     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------ | ---------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write`, `packages:read`, `packages:write` and `repo:admin` — the last needs `signing_key`, `targets` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key, hardware `sk-` keys included; see [signed requests](#signed-requests)), `targets` (`repo:admin` only: `owner/repo` or `org`, one per line or comma-separated, each one you administer), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
+| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`, or as the HTTP Basic password for
 git. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
@@ -685,6 +685,58 @@ writers only, and an unreadable repo, a draft, an unknown tag and an unknown nam
 `Content-Security-Policy: default-src 'none'; sandbox`, so an uploaded HTML file can't run on the instance's origin.
 Percent-encode a tag that contains `/`. The `ETag` is the file's SHA-256 and `Cache-Control` is `private, no-cache`.
 
+## Packages
+
+Generic files are described below; container images are pushed and pulled over `/v2` and managed here. The overview is
+[package-registry](./package-registry.md).
+
+| Method | Path                                                                | Auth                                                             | Description                                                                                                                                                             |
+| ------ | ------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/packages`                                  | Optional (`packages:read`)                                       | List the packages linked to the repository, containers and generic: `name`, `type`, `latest_version`, `version_count`, `tag_count`, `size`                              |
+| GET    | `/api/repos/:owner/:repo/packages/container/:name...`               | Optional (`packages:read`)                                       | A container package: `tags` (`name`, `digest`, `size`, `platforms`, `publisher`, `pull_count`) and `untagged` manifests, which leave out signatures and other referrers |
+| DELETE | `/api/repos/:owner/:repo/packages/container/:name...`               | CanManage or path owner (`packages:write`)                       | Delete the whole package; `204`. A writer gets `403`. Only rows go: the sweep reclaims blobs once no package links them                                                 |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name`                    | CanManage or path owner (`packages:write`)                       | Delete the whole generic package and its files                                                                                                                          |
+| POST   | `/api/repos/:owner/:repo/packages/relink`                           | Path owner, or CanManage on both repositories (`packages:write`) | Body `{"type", "name", "repo": "owner/repo"}`: link the package to another repository of its path owner; `204`. Another owner's repository is `400`                     |
+| GET    | `/api/repos/:owner/:repo/packages/generic/:name`                    | Optional (`packages:read`)                                       | Versions newest first, each with its files: `filename`, `size`, `sha256`, `download_url`                                                                                |
+| PUT    | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`)                                      | Upload a file; the body is the file. 201 with the stored `sha256` and `size`                                                                                            |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`)                                      | Delete a file; a version left with no files, and a package left with no versions, go with it                                                                            |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version`           | CanWrite (`packages:write`)                                      | Delete a version and its files                                                                                                                                          |
+| GET    | `/:owner/:repo/packages/generic/:name/:version/:filename`           | Optional (`packages:read`)                                       | Download a file (a web route, not under `/api`); `HEAD` works too                                                                                                       |
+
+A caller authenticates with a Bearer token or with HTTP Basic whose password is a personal access token, so `curl`
+works:
+
+```sh
+curl -u ci:$TOKEN -T app-1.0.tar.gz \
+  https://git.example.com/api/repos/ada/app/packages/generic/app/1.0/app-1.0.tar.gz
+curl -u ci:$TOKEN -LO https://git.example.com/ada/app/packages/generic/app/1.0/app-1.0.tar.gz
+```
+
+The token needs `packages:write` to upload or delete and `packages:read` (or `packages:write`) to read. A Basic PAT
+without the scope gets a plain `403`, not `401`, so a client does not erase the credential; a Bearer one gets the usual
+`insufficient_scope`. A Basic upload needs no `X-CSRF-Token`. The `repo:*` scopes admit nothing here.
+
+The path owner may delete or re-link a package whatever the repository's permissions say, so after a transfer it can
+still reach its own package. These routes live under the package's current repository, so a path owner who cannot read
+that repository (a private one transferred away) cannot use them.
+
+A name, version or filename may contain only `[A-Za-z0-9._-]` (at most 255 characters) and can't be `.` or `..`; it is
+refused, never cleaned.
+
+| Status | Meaning                                                                                                                                |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 400    | A name, version or filename outside the rule above                                                                                     |
+| 401    | No usable credentials on an upload or delete (`WWW-Authenticate: Basic realm="packages"`)                                              |
+| 403    | A reader, a token without the scope, or the package quota (`quota.{user,org}.package_bytes`) is reached                                |
+| 404    | An unreadable or unknown repository, or an unknown file; on download these are all the same 404                                        |
+| 409    | The file exists in that version (published files are never replaced), or the package name is linked to another repository of the owner |
+| 413    | The file is over `packages.max_file_bytes`                                                                                             |
+
+The size cap and the quota are enforced while the body streams, so a refused upload leaves no object and no row. A
+download runs `CanRead` on every request, so making a repository private stops serving at once. The response carries
+`Content-Disposition: attachment`, `nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`,
+`Cache-Control: private, no-cache` and an `ETag` that is the file's SHA-256.
+
 ## Commit Statuses
 
 | Method | Path                                          | Auth     | Description                                                                  |
@@ -994,6 +1046,11 @@ else. Every response, success or error, carries `Cache-Control: no-store` (RFC 6
 | `repo:write`   | `repo:read`, plus repo content writes, creating repos, merging, git push                                                  |
 | `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                                              |
 | `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`, except merging, applying suggestions and updating the branch |
+
+`packages:read` and `packages:write` exist for personal access tokens and device logins only; OAuth apps can't request
+them. `packages:read` admits reads under `/api/repos/:owner/:repo/packages` and the generic download path,
+`packages:write` the same reads and the writes, and no `repo:*` scope admits either. The same two scopes decide what
+`GET /v2/token` issues for `docker login`; see [access-control](./access-control.md#container-registry-v2).
 
 A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a
 `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed

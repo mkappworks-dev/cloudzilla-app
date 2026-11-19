@@ -1,0 +1,397 @@
+package pages
+
+import (
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
+)
+
+templ PackageDetail(data view.PackageDetailData) {
+	@layout.Base(data.BasePage, data.Pkg.Name+" · Packages · "+data.Repo.OwnerName+"/"+data.Repo.Name) {
+		<div class="flex flex-col gap-6">
+			<section aria-labelledby="pkg-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Repo.OwnerName + "/" + data.Repo.Name) } class="hover:underline">{ data.Repo.Name }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Repo.OwnerName + "/" + data.Repo.Name + "/packages") } class="hover:underline">Packages</a>
+					<span aria-hidden="true">·</span>
+					<span aria-current="page">{ data.Pkg.Name }</span>
+				</p>
+				<div class="flex flex-wrap items-center gap-2">
+					@packageTypeIcon(data.Pkg.Type, 20)
+					<h1 id="pkg-title" class="text-2xl font-semibold tracking-tight font-mono min-w-0 break-all">{ data.Pkg.Name }</h1>
+					@components.Badge(components.BadgeOutline) {
+						{ packageTypeLabel(data.Pkg.Type) }
+					}
+					if data.Repo.Private {
+						@components.Badge(components.BadgeDraft) {
+							Private
+						}
+					}
+				</div>
+				<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+					<span class="inline-flex items-center gap-1.5">
+						@components.Avatar(data.Pkg.OwnerName, components.AvatarSizeXS, data.Pkg.OwnerName)
+						{ data.Pkg.OwnerName }
+					</span>
+					if data.Pkg.LatestVersion != "" {
+						<span aria-hidden="true" class="text-muted-foreground/50">·</span>
+						<span>latest <span class="font-mono text-foreground">{ data.Pkg.LatestVersion }</span> published <time datetime={ data.Pkg.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(data.Pkg.UpdatedAt) }</time></span>
+					}
+					if data.Pkg.Type == model.PackageTypeContainer {
+						<span aria-hidden="true" class="text-muted-foreground/50">·</span>
+						<span>{ strconv.FormatInt(data.Pkg.Pulls, 10) } pulls</span>
+					}
+				</div>
+			</section>
+			<div class="grid lg:grid-cols-[1fr_280px] gap-6 items-start">
+				<div class="flex flex-col gap-6 min-w-0">
+					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="install-heading">
+						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+							<h2 id="install-heading" class="text-[13px] font-medium">Install</h2>
+							<span class="text-[12px] text-muted-foreground">
+								if data.Pkg.Type == model.PackageTypeContainer {
+									from the command line
+								} else if len(data.Versions) > 0 {
+									{ "one file of " + data.Versions[0].Version }
+								}
+							</span>
+						</header>
+						<div class="px-5 py-4 flex flex-col gap-3" x-data="{ copied: false }">
+							if data.Repo.Private {
+								<p class="text-[12.5px] text-muted-foreground">This repository is private: <span class="font-mono text-foreground">{ "docker login " + data.Host }</span> first, with a token that has <span class="font-mono text-foreground">packages:read</span>.</p>
+							}
+							if data.Command != "" {
+								<div class="flex items-center gap-1.5">
+									<label for="pkg-command" class="sr-only">Install command</label>
+									<input id="pkg-command" type="text" readonly value={ data.Command } class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-input rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+									<button
+										type="button"
+										x-on:click="navigator.clipboard.writeText(document.getElementById('pkg-command').value); copied = true; setTimeout(() => copied = false, 1500)"
+										class="h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent shrink-0"
+										:class="copied ? 'text-success' : ''"
+										aria-label="Copy install command"
+									>
+										<svg x-show="!copied" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+										<svg x-show="copied" x-cloak width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+									</button>
+								</div>
+							}
+							if data.Pkg.Type == model.PackageTypeContainer && len(data.Tags) > 0 {
+								<p class="text-[11px] text-muted-foreground">Pin a digest instead of a tag to get exactly this build: <span class="font-mono break-all">{ data.Pkg.Name + "@" + packageShortDigest(data.Tags[0].Digest) }</span></p>
+							} else if data.Pkg.Type == model.PackageTypeGeneric {
+								<p class="text-[11px] text-muted-foreground">Add <span class="font-mono">-H "Authorization: Bearer $CZ_TOKEN"</span> when the repository is private.</p>
+							}
+						</div>
+					</section>
+					if data.Pkg.Type == model.PackageTypeContainer {
+						@packageTagsCard(data)
+					} else {
+						@packageFilesCard(data)
+						@packageVersionsCard(data)
+					}
+					if data.ReadmeHTML != "" {
+						<section data-pkg-card="readme" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="readme-heading">
+							<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+								<h2 id="readme-heading" class="text-[13px] font-medium">Readme</h2>
+								<span class="text-[12px] text-muted-foreground font-mono">{ data.ReadmeName + " on " + data.Repo.DefaultBranch }</span>
+							</header>
+							<div class="px-5 py-4 prose prose-sm dark:prose-invert max-w-none">
+								@templ.Raw(data.ReadmeHTML)
+							</div>
+						</section>
+					}
+				</div>
+				<aside class="flex flex-col gap-6" aria-label="Package details">
+					<section aria-labelledby="pk-repo-heading">
+						<h2 id="pk-repo-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Repository</h2>
+						<p><a href={ templ.SafeURL("/" + data.Repo.OwnerName + "/" + data.Repo.Name) } class="text-[13px] font-medium hover:underline">{ data.Repo.OwnerName }/{ data.Repo.Name }</a></p>
+						if data.Mismatch {
+							<p data-pkg-note="mismatch" class="mt-2 text-[12px] text-muted-foreground">
+								This package is published under <span class="font-mono text-foreground">{ data.Pkg.OwnerName }</span> but its repository now belongs to <span class="font-mono text-foreground">{ data.Repo.OwnerName }</span>. Pulls keep using <span class="font-mono text-foreground">{ data.Pkg.OwnerName }/{ data.Pkg.Name }</span>.
+								if data.CanDelete {
+									You can re-link it to one of your own repositories.
+								}
+							</p>
+						}
+					</section>
+					<section aria-labelledby="pk-vis-heading" class="border-t border-border pt-5">
+						<h2 id="pk-vis-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Visibility</h2>
+						<p>
+							if data.Repo.Private {
+								@components.Badge(components.BadgeDraft) {
+									Private
+								}
+							} else {
+								@components.Badge(components.BadgeOutline) {
+									Public
+								}
+							}
+						</p>
+						<p class="mt-2 text-[12px] text-muted-foreground">Follows the repository. Anyone who can read the code can pull; writers can push and delete.</p>
+					</section>
+					if len(data.Platforms) > 0 {
+						<section aria-labelledby="pk-plat-heading" class="border-t border-border pt-5">
+							<h2 id="pk-plat-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Platforms of { data.Pkg.LatestVersion }</h2>
+							<p class="font-mono text-[12px]">{ strings.Join(data.Platforms, " · ") }</p>
+						</section>
+					}
+					<section aria-labelledby="pk-storage-heading" class="border-t border-border pt-5">
+						<h2 id="pk-storage-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Storage</h2>
+						<p class="text-[13px]">
+							{ service.FormatBytes(data.Pkg.Size) }
+							if data.Pkg.Type == model.PackageTypeContainer {
+								<span class="text-muted-foreground">after shared layers</span>
+							}
+						</p>
+						if data.Limit > 0 {
+							<p class="mt-1 text-[12px] text-muted-foreground">{ data.Pkg.OwnerName } has used { service.FormatBytes(data.Used) } of its { service.FormatBytes(data.Limit) } package quota.</p>
+							if data.Used >= data.Limit {
+								<p data-pkg-note="quota" role="alert" class="mt-2 rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-2">Package storage quota reached. New pushes and uploads are refused until something is deleted.</p>
+							}
+						} else {
+							<p class="mt-1 text-[12px] text-muted-foreground">{ data.Pkg.OwnerName } has used { service.FormatBytes(data.Used) }. There is no package quota.</p>
+						}
+					</section>
+					if data.CanDelete {
+						<section aria-labelledby="pk-danger-heading" class="border-t border-border pt-5 flex flex-col gap-2">
+							<h2 id="pk-danger-heading" class="text-[12px] font-medium text-muted-foreground">Manage</h2>
+							if len(data.RelinkTargets) > 0 {
+								<button type="button" data-pkg-action="relink" onclick="document.getElementById('pkg-relink-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Re-link…</button>
+							}
+							<button type="button" data-pkg-action="delete-package" onclick="document.getElementById('pkg-delete-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Delete package</button>
+						</section>
+					}
+				</aside>
+			</div>
+		</div>
+		if data.CanDelete {
+			@packageDeleteDialog(data)
+			if len(data.RelinkTargets) > 0 {
+				@packageRelinkDialog(data)
+			}
+		}
+	}
+}
+
+func packageShortDigest(d string) string {
+	if len(d) > 19 {
+		return d[:19] + "…"
+	}
+	return d
+}
+
+templ packageTrashIcon() {
+	<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+}
+
+// packageDeleteRow is a delete form for one tag, manifest or version; the layout's confirm dialog asks first.
+templ packageDeleteRow(data view.PackageDetailData, action, field, value, title, message, toast string) {
+	<form
+		method="post"
+		action={ templ.SafeURL(packageFormPath(data, action)) }
+		hx-post={ packageFormPath(data, action) }
+		hx-swap="none"
+		hx-confirm={ message }
+		data-confirm-title={ title }
+		data-confirm-label="Delete"
+		data-confirm-danger="true"
+		data-toast={ toast }
+		class="inline"
+	>
+		<input type="hidden" name="package_id" value={ strconv.FormatInt(data.Pkg.ID, 10) }/>
+		<input type="hidden" name={ field } value={ value }/>
+		<button type="submit" data-pkg-action={ action } class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label={ title }>
+			@packageTrashIcon()
+		</button>
+	</form>
+}
+
+templ packageTagsCard(data view.PackageDetailData) {
+	<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="tags-heading">
+		<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+			<h2 id="tags-heading" class="text-[13px] font-medium">Tags</h2>
+			<span class="ml-0.5 text-[11px] text-muted-foreground font-mono">{ strconv.Itoa(len(data.Tags)) }</span>
+		</header>
+		if len(data.Tags) == 0 && len(data.Untagged) == 0 {
+			<p class="p-6 text-center text-sm text-muted-foreground">No tags pushed yet.</p>
+		} else {
+			<div class="overflow-x-auto">
+				<table class="w-full caption-bottom text-sm">
+					<thead class="[&_tr]:border-b [&_tr]:border-border">
+						<tr class="border-b border-border">
+							<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Tag</th>
+							<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Digest</th>
+							<th scope="col" class="h-10 px-4 text-right align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Size</th>
+							<th scope="col" class="h-10 px-4 text-right align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden sm:table-cell">Pulls</th>
+							<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden md:table-cell">Published</th>
+							<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider"><span class="sr-only">Actions</span></th>
+						</tr>
+					</thead>
+					<tbody class="[&_tr:last-child]:border-0">
+						for _, t := range data.Tags {
+							<tr class="border-b border-border transition-colors hover:bg-muted/50">
+								<th scope="row" class="p-4 align-middle font-normal text-left"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">{ t.Name }</code></th>
+								<td class="p-4 align-middle"><span class="font-mono text-[12px] text-muted-foreground whitespace-nowrap" title={ t.Digest }>{ packageShortDigest(t.Digest) }</span></td>
+								<td class="p-4 align-middle text-right font-mono text-[12px] whitespace-nowrap">{ service.FormatBytes(t.Size) }</td>
+								<td class="p-4 align-middle text-right font-mono text-[12px] hidden sm:table-cell">{ strconv.FormatInt(t.PullCount, 10) }</td>
+								<td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">
+									if t.Publisher != "" {
+										{ t.Publisher } ·
+									}
+									<time datetime={ t.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(t.UpdatedAt) }</time>
+								</td>
+								<td class="p-4 align-middle text-right">
+									if data.CanWrite {
+										@packageDeleteRow(data, "delete-tag", "ref", t.Name, "Delete tag "+t.Name, "Pulls of "+data.Pkg.Name+":"+t.Name+" fail with “manifest unknown”. Layers other tags share stay.", "Tag deleted")
+									}
+								</td>
+							</tr>
+						}
+						for _, m := range data.Untagged {
+							<tr class="border-b border-border transition-colors hover:bg-muted/50">
+								<th scope="row" class="p-4 align-middle font-normal text-left"><span class="text-[12px] text-muted-foreground">untagged</span></th>
+								<td class="p-4 align-middle"><span class="font-mono text-[12px] text-muted-foreground whitespace-nowrap" title={ m.Digest }>{ packageShortDigest(m.Digest) }</span></td>
+								<td class="p-4 align-middle text-right font-mono text-[12px] whitespace-nowrap">{ service.FormatBytes(m.Size) }</td>
+								<td class="p-4 align-middle text-right font-mono text-[12px] hidden sm:table-cell">{ strconv.FormatInt(m.PullCount, 10) }</td>
+								<td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap"><time datetime={ m.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(m.CreatedAt) }</time></td>
+								<td class="p-4 align-middle text-right">
+									if data.CanWrite {
+										@packageDeleteRow(data, "delete-tag", "ref", m.Digest, "Delete untagged manifest "+packageShortDigest(m.Digest), "The manifest is removed. Layers other manifests share stay.", "Manifest deleted")
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</section>
+}
+
+templ packageFilesCard(data view.PackageDetailData) {
+	if len(data.Versions) > 0 {
+		<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="files-heading">
+			<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+				<h2 id="files-heading" class="text-[13px] font-medium">Files in { data.Versions[0].Version }</h2>
+			</header>
+			<ul class="divide-y divide-border">
+				for _, f := range data.Versions[0].Files {
+					<li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3">
+						<svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+						<div class="min-w-0 flex-1">
+							<p class="font-mono text-[13px] truncate">{ f.Filename }</p>
+							<p class="font-mono text-[11px] text-muted-foreground truncate" title={ "sha256:" + f.SHA256 }>{ "sha256:" + f.SHA256[:12] + "…" + f.SHA256[len(f.SHA256)-4:] } · { service.FormatBytes(f.Size) }</p>
+						</div>
+						<a href={ templ.SafeURL(packageFileHref(data, data.Versions[0].Version, f.Filename)) } class="h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0">
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+							Download
+						</a>
+					</li>
+				}
+			</ul>
+		</section>
+	}
+}
+
+templ packageVersionsCard(data view.PackageDetailData) {
+	<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="versions-heading">
+		<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+			<h2 id="versions-heading" class="text-[13px] font-medium">Versions</h2>
+			<span class="ml-0.5 text-[11px] text-muted-foreground font-mono">{ strconv.Itoa(len(data.Versions)) }</span>
+		</header>
+		<div class="overflow-x-auto">
+			<table class="w-full caption-bottom text-sm">
+				<thead class="[&_tr]:border-b [&_tr]:border-border">
+					<tr class="border-b border-border">
+						<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Version</th>
+						<th scope="col" class="h-10 px-4 text-right align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Files</th>
+						<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden md:table-cell">Published</th>
+						<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider"><span class="sr-only">Actions</span></th>
+					</tr>
+				</thead>
+				<tbody class="[&_tr:last-child]:border-0">
+					for i, v := range data.Versions {
+						<tr class="border-b border-border transition-colors hover:bg-muted/50">
+							<th scope="row" class="p-4 align-middle font-normal text-left">
+								<div class="flex items-center gap-1.5">
+									<code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">{ v.Version }</code>
+									if i == 0 {
+										@components.Badge(components.BadgeSuccess) {
+											Latest
+										}
+									}
+								</div>
+							</th>
+							<td class="p-4 align-middle text-right font-mono text-[12px]">{ strconv.Itoa(len(v.Files)) } · { service.FormatBytes(packageFilesSize(v.Files)) }</td>
+							<td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap"><time datetime={ v.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(v.CreatedAt) }</time></td>
+							<td class="p-4 align-middle text-right">
+								if data.CanWrite {
+									@packageDeleteRow(data, "delete-version", "version", v.Version, "Delete version "+v.Version, "All files of this version are removed. Download links to them return 404. Other versions are kept.", "Version deleted")
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</section>
+}
+
+templ packageDeleteDialog(data view.PackageDetailData) {
+	@components.Dialog("pkg-delete-dialog") {
+		<form hx-post={ packageFormPath(data, "delete") } hx-swap="none" data-toast="Package deleted">
+			<input type="hidden" name="package_id" value={ strconv.FormatInt(data.Pkg.ID, 10) }/>
+			@components.DialogHeader() {
+				@components.DialogTitle("pkg-delete-dialog") {
+					<span class="text-destructive">Delete { data.Pkg.Name }?</span>
+				}
+				@components.DialogDescription() {
+					Every version and its files are removed, and the name is freed. This can’t be undone.
+				}
+			}
+			@components.DialogBody() {
+				@components.ConfirmNameField("pkg-delete", data.Pkg.Name)
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Delete package</button>
+			}
+		</form>
+	}
+}
+
+templ packageRelinkDialog(data view.PackageDetailData) {
+	@components.Dialog("pkg-relink-dialog") {
+		<form hx-post={ packageFormPath(data, "relink") } hx-swap="none" data-toast="Package re-linked">
+			<input type="hidden" name="package_id" value={ strconv.FormatInt(data.Pkg.ID, 10) }/>
+			@components.DialogHeader() {
+				@components.DialogTitle("pkg-relink-dialog") {
+					Re-link { data.Pkg.Name }
+				}
+				@components.DialogDescription() {
+					Pulls keep working. Readers and writers of the new repository decide who can pull and push. Only repositories of { data.Pkg.OwnerName } are offered.
+				}
+			}
+			@components.DialogBody() {
+				<label for="pkg-relink-repo" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository</label>
+				<select id="pkg-relink-repo" name="repo" required class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring">
+					for _, name := range data.RelinkTargets {
+						<option value={ name }>{ data.Pkg.OwnerName }/{ name }</option>
+					}
+				</select>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Re-link</button>
+			}
+		</form>
+	}
+}

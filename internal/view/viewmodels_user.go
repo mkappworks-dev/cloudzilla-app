@@ -20,7 +20,8 @@ type UserData struct {
 	ReadmeError      string
 
 	IsOwnProfile bool
-	Tab          string // "overview" | "repositories" | "stars" | "gists"
+	Tab          string // "overview" | "repositories" | "stars" | "gists" | "packages"
+	Packages     OwnerPackagesData
 	PinnedRepos  []components.PinnedRepoData
 	Heatmap      map[time.Time]int
 	TopLangs     []components.LangBarItem
@@ -83,6 +84,8 @@ type OrgData struct {
 	RecentRepos   []components.PinnedRepoData
 	ShowAllRepos  bool // ?tab=repositories: RecentRepos holds every visible repo
 	ShowAllPeople bool // ?tab=people
+	ShowPackages  bool // ?tab=packages
+	Packages      OwnerPackagesData
 	TopLangs      []components.LangBarItem
 	ViewerRole    *model.OrgRole // nil if the viewer is not a member
 	ViewerJoined  *time.Time     // nil if the viewer is not a member
@@ -110,6 +113,7 @@ type OrgSettingsData struct {
 	RepoCount   int
 	// QuotaSummary is "" when the instance sets no quota for orgs.
 	QuotaSummary string
+	PackageUsage string
 	AuditEntries []model.AuditEntry
 	Webhooks     []model.Webhook
 	Teams        []model.Team

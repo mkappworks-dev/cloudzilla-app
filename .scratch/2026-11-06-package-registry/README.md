@@ -5,21 +5,20 @@ profile. A package follows its repository: readers pull, writers push and delete
 switch. Classes come from `table.templ`, `tabs.templ`, `badge.templ`, `dialog.templ`, the clone popover and copy button
 on the repo page, and the release detail layout (asset rows, metadata aside).
 
-Open with `python3 -m http.server` from the repo root at `/.scratch/2026-11-06-package-registry/mock.html`. Rebuild CSS
-with `bin/tailwindcss -i .scratch/2026-11-06-package-registry/mock-input.css -o .scratch/2026-11-06-package-registry/mock.css`.
-`shell.js` has no Packages tab, so each page swaps in a copy of its repo subnav with one added after Releases (generated
-from shell.js's own tab markup). Screenshots go in `shots/` (gitignored, not committed).
+The mocks live in `mockups/` (`repo_packages.html`, `package_detail.html`, `owner_packages.html`); run `make mockups`
+and open `/repo_packages`. `shell.js` has no Packages tab, so each page swaps in a copy of its repo subnav with one added after Releases (generated
+from shell.js's own tab markup). 
 
 ## Pages and states
 
-- `mock.html`: repo packages table (type icon, name and description, type badge, latest version, downloads, updated),
+- `repo_packages.html`: repo packages table (type icon, name and description, type badge, latest version, downloads, updated),
   type tabs, name filter, and a "Publish" popover with docker and curl snippets. States: `list`, `publish`, `empty`. The
   empty state shows both how-tos and the token scopes.
-- `package.html`: install command with copy button (`docker pull <host>/<owner>/<name>:<tag>`, or `curl -LO` for a
+- `package_detail.html`: install command with copy button (`docker pull <host>/<owner>/<name>:<tag>`, or `curl -LO` for a
   generic file), a tags table (tags, digest, size, publisher, delete) or files plus versions for generic, a readme card,
   and an aside with repository, visibility, platforms, storage and "Delete package". Deleting a version or the package
   asks you to type its name. States: `container`, `private`, `generic`, `delete`.
-- `owner.html`: `/{owner}` Packages tab across the owner's repositories, with type and repository filters. It works the
+- `owner_packages.html`: `/{owner}` Packages tab across the owner's repositories, with type and repository filters. It works the
   same for an organization.
 
 ## ROADMAP vs mock

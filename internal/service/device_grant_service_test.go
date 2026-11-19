@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -43,6 +44,14 @@ func TestDeviceGrantService_Create(t *testing.T) {
 		if _, err := svc.Create(ctx, ip, bad, ""); !errors.Is(err, service.ErrInvalidScope) {
 			t.Errorf("Create(%v) = %v; want ErrInvalidScope", bad, err)
 		}
+	}
+}
+
+func TestDeviceGrantService_CreateAcceptsPackageScopes(t *testing.T) {
+	svc, _, _, ip := newDeviceSvc(t)
+
+	if _, err := svc.Create(context.Background(), ip, []string{model.ScopePackagesWrite, model.ScopeRepoRead}, "ci"); err != nil {
+		t.Errorf("Create with packages:write = %v; want a grant", err)
 	}
 }
 

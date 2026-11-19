@@ -23,6 +23,16 @@ func TestCSRF(t *testing.T) {
 		}
 	})
 
+	t.Run("the registry passes without a token or a cookie", func(t *testing.T) {
+		for _, method := range []string{"POST", "PUT", "PATCH", "DELETE"} {
+			rec := httptest.NewRecorder()
+			csrf.ServeHTTP(rec, httptest.NewRequest(method, "/v2/o/img/blobs/uploads/", nil))
+			if rec.Code != http.StatusOK || len(rec.Result().Cookies()) != 0 {
+				t.Errorf("%s /v2: got %d with %d cookies, want 200 and none", method, rec.Code, len(rec.Result().Cookies()))
+			}
+		}
+	})
+
 	t.Run("POST without token returns 403", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/api/foo", nil)
 		rec := httptest.NewRecorder()

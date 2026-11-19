@@ -86,6 +86,9 @@ type Services struct {
 	PushVet            *PushVetService
 	Mirror             *MirrorService
 	Quota              *QuotaService
+	Package            *PackageService
+	Registry           *RegistryService
+	RegistryGC         *RegistryGCService
 	InstanceSigner     *InstanceSigner
 	Push               *PushService
 	// Secrets is nil when security.secret_key is unset.
@@ -98,8 +101,11 @@ func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
 	s.Attachment.WithBackend(b)
 	s.ReleaseAsset.WithBackend(b)
+	s.Package.WithBackend(b)
 	s.WorkflowLog.WithBackend(b)
 	s.Export.WithBackend(b)
+	s.Registry.WithBackend(b)
+	s.RegistryGC.WithBackend(b)
 	return s
 }
 
@@ -186,6 +192,11 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	secretScanSvc.WithTokenResolver(tokenRevoker)
 	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
 		WithTokenResolver(tokenRevoker)
+	packageSvc := NewPackageService(stores.Package, stores.User, cfg.Quota).WithLimits(cfg.Packages).WithAccess(repoSvc, orgSvc)
+	repoSvc.WithPackages(packageSvc)
+	userSvc.WithPackages(packageSvc)
+	orgSvc.WithPackages(packageSvc)
+	accessTokenSvc := NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc)
 	return &Services{
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
@@ -218,7 +229,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		PullEvent:          NewPullEventService(stores.PullEvent),
 		Search:             NewSearchService(stores.Search),
-		AccessToken:        NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
+		AccessToken:        accessTokenSvc,
 		DeviceGrant:        NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken, stores.User).WithEmail(emailSvc),
 		DeployKey:          NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection:   branchProtectionSvc,
@@ -260,6 +271,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PushVet:            NewPushVetService(branchProtectionSvc, pushScanSvc),
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
+		Package:            packageSvc,
+		Registry:           NewRegistryService(stores.Registry, packageSvc, cfg.Registry).WithAuth(accessTokenSvc, repoSvc, cfg.Auth.JWTSecret, cfg.Server.BaseURL),
+		RegistryGC:         NewRegistryGCService(stores.Registry, cfg.Registry),
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc).WithWorkflowRuns(workflowRunSvc),
 		InstanceSigner:     instanceSigner,
 		Secrets:            secrets,

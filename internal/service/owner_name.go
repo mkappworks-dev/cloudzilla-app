@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,7 +28,28 @@ var reservedOwnerNames = map[string]bool{
 	"new": true, "notifications": true, "oauth": true, "organizations": true, "orgs": true, "pulls": true,
 	"read-all": true, "readyz": true, "register": true, "repos": true, "search": true,
 	"settings": true, "setup": true, "stars": true, "static": true, "terms": true, "topic": true,
-	"unread-count": true, "verify-email": true,
+	"unread-count": true, "v2": true, "verify-email": true,
+}
+
+// shadowedOwnerNames are reserved after accounts could already hold them, so such an account may exist and
+// its URL now belongs to a route.
+var shadowedOwnerNames = []string{"v2"}
+
+// WarnShadowedOwnerNames logs, and returns, each of shadowedOwnerNames that a user or organization already holds.
+func WarnShadowedOwnerNames(ctx context.Context, users *store.UserStore) []string {
+	var found []string
+	for _, name := range shadowedOwnerNames {
+		taken, err := users.OwnerNameTaken(ctx, name)
+		if err != nil {
+			slog.Warn("check for accounts named after a reserved route", "name", name, "error", err)
+			continue
+		}
+		if taken {
+			slog.Warn("an account is named after a route that now belongs to the server and is unreachable at its old URL; rename it", "name", name)
+			found = append(found, name)
+		}
+	}
+	return found
 }
 
 // ValidateOwnerName checks a new user or organization name. It runs only on

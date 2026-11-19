@@ -156,3 +156,5 @@ func displayNameOr(name, username string) string {
 	}
 	return username
 }
+
+func hasUsageLines(quota, packages string) bool { return quota != "" || packages != "" }

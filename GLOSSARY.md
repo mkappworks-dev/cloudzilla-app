@@ -115,6 +115,35 @@ finding.
 **Actions** — the Repository tab where Workflows are run and managed. **Checks** is the pull request tab that shows the
 results for one pull request. Neither is called a pipeline; that word is not used.
 
+## Packages
+
+**Package** — a named, versioned thing a Repository's writers publish: a container image or a set of generic files. It
+lives at `{owner}/{name}`, has no visibility of its own and is readable and writable by whoever can read and write its
+Linked Repository. Its Path owner may always delete it or re-link it.
+
+**Registry** — the part of the Instance that stores and serves Packages. Docker and podman talk to its container side.
+
+**Image** — a Package whose type is container.
+
+**Path owner** — the User or Organization named by a Package's path, `{owner}` in `{owner}/{name}`. It keeps the right
+to delete and re-link the Package even when its Linked Repository has moved to another Owner.
+
+**Linked Repository** — the Repository a Package takes its permissions from, chosen at the first push: the Path owner's
+Repository named like the image, else the one the image's source label names. A transfer can move it to another Owner;
+re-linking never does.
+
+**Pending package** — a Package created by the first upload to a new name, before its first Manifest links it. Only its
+creator can see or continue it, and it expires if never linked.
+
+**Manifest** — the content-addressed description of one image (or a multi-platform index of images), named by its
+digest. A Manifest with no Tag is untagged.
+
+**Tag** — a movable name for a Manifest, such as `v0.4.1` or `latest`. Deleting a Tag does not delete its Manifest.
+
+**Blob** — a layer or config file an image's Manifest points to, stored once per digest.
+
+**Package file** — one file of a generic Package version, with its own SHA-256.
+
 ## Tools
 
 **`cz`** — the remote command-line client for developers. It talks to the JSON API only.

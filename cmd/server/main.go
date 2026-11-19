@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -62,8 +63,14 @@ func main() {
 
 	stores := store.New(database)
 	services := service.New(stores, cfg).WithStorage(backend)
+	service.WarnShadowedOwnerNames(context.Background(), stores.User)
 	if services.Secrets == nil {
 		slog.Warn("security.secret_key is not set: server-made commits are not signed and mirror credentials can't be stored")
+	}
+	// A restart loses in-flight registry uploads: their spool files are emptied and their session rows dropped.
+	if err := services.Registry.ResetSpool(context.Background(), filepath.Join(os.TempDir(), "cloudzilla-registry-spool")); err != nil {
+		slog.Error("failed to reset the registry upload spool", "error", err)
+		os.Exit(1)
 	}
 	if err := services.Import.RemoveStaleTemp(); err != nil {
 		slog.Warn("remove clones of interrupted imports failed", "error", err)
@@ -144,6 +151,9 @@ func main() {
 	concurrency.Go("quota.backfill", func() { services.Quota.Backfill(workerCtx) })
 	concurrency.Go("pull.backfill-merged-ranges", func() { services.Pull.BackfillMergedRanges(workerCtx, services.PullEvent) })
 	concurrency.Go("attachment.sweep", func() { services.Attachment.Run(workerCtx) })
+	// Outside the registry.enabled check: turning the registry off must not stop deleted images from being reclaimed.
+	concurrency.Go("registry.sweep", func() { services.RegistryGC.Run(workerCtx) })
+	concurrency.Go("registry.pull_counts", func() { services.Registry.RunPullCounts(workerCtx) })
 	concurrency.Go("account_export.run", func() { services.Export.Run(workerCtx) })
 
 	// Daily purge of soft-deleted repos older than 30 days
@@ -211,6 +221,11 @@ func main() {
 		if err := metricsSrv.Shutdown(ctx); err != nil {
 			slog.Error("metrics graceful shutdown failed", "error", err)
 		}
+	}
+
+	// Every pull has been counted once the HTTP server has drained.
+	if err := services.Registry.FlushPulls(ctx); err != nil {
+		slog.Error("registry pull counts final flush failed", "error", err)
 	}
 
 	// Shutdown SSH server

@@ -23,7 +23,7 @@ var (
 
 // deviceScopes is what the browser flow may request; repo:admin is deliberately absent
 // because the server refuses it for device logins.
-var deviceScopes = []string{"repo:read", "repo:write", "issues:write", "pulls:write"}
+var deviceScopes = []string{"repo:read", "repo:write", "issues:write", "pulls:write", "packages:read", "packages:write"}
 
 const defaultDeviceScope = "repo:write"
 

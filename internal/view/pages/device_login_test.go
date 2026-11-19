@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
@@ -54,6 +55,16 @@ func TestDeviceConfirm_OnlySelectedScopesAreTicked(t *testing.T) {
 	}
 	if !strings.Contains(html, `value="repo:write"`) {
 		t.Error("repo:write should still be offered")
+	}
+}
+
+func TestDeviceConfirm_DescribesPackageScopes(t *testing.T) {
+	html := renderPage(t, DeviceConfirm(view.DeviceConfirmData{
+		BasePage: testBasePage(), UserCode: "BCDF-GHJK",
+		Scopes: []string{"packages:write"}, Selected: []string{"packages:write"},
+	}))
+	if !strings.Contains(html, `value="packages:write" checked`) || !strings.Contains(html, model.ScopeDescription("packages:write")) {
+		t.Error("the approval page must offer packages:write with its description")
 	}
 }
 

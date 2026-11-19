@@ -16,6 +16,8 @@ func TestScopeAllows(t *testing.T) {
 		issues = model.ScopeIssuesWrite
 		pulls  = model.ScopePullsWrite
 		admin  = model.ScopeRepoAdmin
+		pkgR   = model.ScopePackagesRead
+		pkgW   = model.ScopePackagesWrite
 	)
 	tests := []struct {
 		name   string
@@ -75,6 +77,10 @@ func TestScopeAllows(t *testing.T) {
 		{"whoami with repo:read", "GET", "/api/user", []string{read}, true},
 		{"whoami with pulls:write", "GET", "/api/user", []string{pulls}, true},
 		{"whoami with repo:admin only", "GET", "/api/user", []string{admin}, false},
+		{"whoami with packages:read", "GET", "/api/user", []string{pkgR}, true},
+		{"whoami with packages:write", "GET", "/api/user", []string{pkgW}, true},
+		{"user sub-resource with packages:write", "GET", "/api/user/tokens", []string{pkgW}, false},
+		{"another user with packages:read", "GET", "/api/users/alice", []string{pkgR}, false},
 		{"write to whoami path", "PATCH", "/api/user", []string{write}, false},
 		{"user sub-resource tokens", "GET", "/api/user/tokens", []string{read, write, issues, pulls}, false},
 		{"user sub-resource keys", "GET", "/api/user/keys", []string{read, write, issues, pulls}, false},
@@ -136,6 +142,23 @@ func TestScopeAllows(t *testing.T) {
 		{"list org webhooks", "GET", "/api/orgs/acme/hooks", []string{read, write, issues, pulls}, false},
 		{"add org webhook", "POST", "/api/orgs/acme/hooks", []string{read, write, issues, pulls}, false},
 		{"transfer org", "POST", "/api/orgs/acme/transfer", []string{read, write, issues, pulls}, false},
+		{"list packages with packages:read", "GET", "/api/repos/alice/proj/packages", []string{pkgR}, true},
+		{"upload a generic file with packages:write", "PUT", "/api/repos/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{pkgW}, true},
+		{"delete a package with packages:write", "DELETE", "/api/repos/alice/proj/packages/generic/tool/1.0", []string{pkgW}, true},
+		{"upload a generic file with repo:write", "PUT", "/api/repos/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{write}, false},
+		{"upload a generic file with repo:admin", "PUT", "/api/repos/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{admin}, false},
+		{"upload a generic file with packages:read", "PUT", "/api/repos/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{pkgR}, false},
+		{"read packages with repo:read", "GET", "/api/repos/alice/proj/packages", []string{read, write, issues, pulls}, false},
+		{"read packages with packages:write", "GET", "/api/repos/alice/proj/packages", []string{pkgW}, true},
+		{"packages scope on repo content", "POST", "/api/repos/alice/proj/issues", []string{pkgR, pkgW}, false},
+		{"packages scope on the repo itself", "GET", "/api/repos/alice/proj", []string{pkgR, pkgW}, false},
+		{"packages scope on repo admin", "POST", "/api/repos/alice/proj/hooks", []string{pkgR, pkgW}, false},
+		{"download a generic file with packages:read", "GET", "/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{pkgR}, true},
+		{"download a generic file with packages:write", "GET", "/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{pkgW}, true},
+		{"download a generic file with repo:read", "GET", "/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{read, write}, false},
+		{"upload through the download path", "PUT", "/alice/proj/packages/generic/tool/1.0/tool.tgz", []string{pkgW}, false},
+		{"the packages page with packages:read", "GET", "/alice/proj/packages", []string{pkgR}, false},
+		{"packages scope on git push", "POST", "/alice/proj/git-receive-pack", []string{pkgW}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

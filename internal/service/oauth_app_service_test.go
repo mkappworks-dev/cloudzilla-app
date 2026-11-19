@@ -433,3 +433,13 @@ func TestOAuthApp_ExchangeCode_RedirectURIMustMatch(t *testing.T) {
 		t.Errorf("replayed code: want ErrInvalidGrant, got %v", err)
 	}
 }
+
+// Registry tokens are for personal access tokens and device logins; an app must never be granted them.
+func TestOAuthApp_PackageScopesAreNotGrantable(t *testing.T) {
+	svc := service.NewOAuthAppService(nil, nil, nil)
+	for _, sc := range []string{model.ScopePackagesRead, model.ScopePackagesWrite} {
+		if _, err := svc.ParseScopes(context.Background(), model.ScopeRepoRead+" "+sc); !errors.Is(err, service.ErrInvalidScope) {
+			t.Errorf("ParseScopes(%s): err = %v, want ErrInvalidScope", sc, err)
+		}
+	}
+}

@@ -186,3 +186,13 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+func TestCheckNewToken_AcceptsPackageScopes(t *testing.T) {
+	scopes, _, err := service.CheckNewToken([]string{model.ScopePackagesWrite, model.ScopePackagesRead, model.ScopePackagesWrite}, nil, "")
+	if err != nil {
+		t.Fatalf("CheckNewToken: %v", err)
+	}
+	if want := []string{model.ScopePackagesWrite, model.ScopePackagesRead}; !slices.Equal(scopes, want) {
+		t.Errorf("scopes = %v, want %v", scopes, want)
+	}
+}
