@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -239,12 +240,14 @@ type Referrer struct {
 	MediaType    string
 	Size         int64
 	ArtifactType string
+	// Annotations are the manifest's own, which the referrers descriptor repeats.
+	Annotations map[string]string
 }
 
 // Referrers lists the package's manifests whose subject is subject, oldest first. A non-empty artifactType keeps
 // only the manifests of that type.
 func (s *RegistryStore) Referrers(ctx context.Context, packageID int64, subject, artifactType string) ([]Referrer, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT digest, media_type, size, COALESCE(artifact_type, '') FROM package_manifests
+	rows, err := s.db.QueryContext(ctx, `SELECT digest, media_type, size, COALESCE(artifact_type, ''), content FROM package_manifests
 		WHERE package_id = $1 AND subject_digest = $2 AND ($3 = '' OR artifact_type = $3)
 		ORDER BY created_at, id`, packageID, subject, artifactType)
 	if err != nil {
@@ -254,9 +257,16 @@ func (s *RegistryStore) Referrers(ctx context.Context, packageID int64, subject,
 	out := []Referrer{}
 	for rows.Next() {
 		var r Referrer
-		if err := rows.Scan(&r.Digest, &r.MediaType, &r.Size, &r.ArtifactType); err != nil {
+		var content []byte
+		if err := rows.Scan(&r.Digest, &r.MediaType, &r.Size, &r.ArtifactType, &content); err != nil {
 			return nil, fmt.Errorf("scan referrer: %w", err)
 		}
+		var doc struct {
+			Annotations map[string]string `json:"annotations"`
+		}
+		// Content was validated as JSON when it was pushed.
+		_ = json.Unmarshal(content, &doc)
+		r.Annotations = doc.Annotations
 		out = append(out, r)
 	}
 	return out, rows.Err()

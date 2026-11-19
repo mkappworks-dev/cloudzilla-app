@@ -109,9 +109,9 @@ When the server answers `403 insufficient_scope`, `cz` prints the scope from the
 
 ## Packages
 
-`cz` has no package commands and no OCI code; it only mints the token.
-`cz auth login --scope packages:write --scope repo:read` stores a personal access token that the registry accepts, and
-`docker` or `curl` then use it as the password:
+`cz` has no package commands and no OCI code; it only mints the token (see [package-registry](./package-registry.md)).
+`cz auth login --scope packages:write` stores a personal access token that the registry accepts, and `docker` or `curl`
+then use it as the password:
 
 ```bash
 cz auth login --host https://git.example.com --scope packages:write --insecure-storage

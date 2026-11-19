@@ -110,6 +110,9 @@ takes it: the owner-name triggers (migrations 080 and 129) delete the org alias,
 the same statement that creates the account. Renaming an org back to a name it had drops its own alias. Resolution is
 one lookup, so a chain of renames stays flat.
 
+A rename **breaks `docker pull` of the organization's images**: a package lives at `/v2/{org}/…` and there are no
+registry aliases, so every consumer must switch to the new name (see [package-registry](./package-registry.md)).
+
 Redirects reuse the repository alias path. `RepoAliasStore.Resolve` falls back from `repo_aliases` to `org_aliases`
 joined to the org's live repo of that name, so `/old/x` redirects to `/new/x` over the web (`301`/`308`), the API, git
 HTTP and SSH, with the visibility rule of [Renamed repositories](./git-transport.md#renamed-repositories): a caller who

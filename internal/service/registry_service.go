@@ -259,7 +259,8 @@ func (s *RegistryService) mayDo(ctx context.Context, user *model.User, name stri
 		return nil, err
 	}
 	// No linked package: a writer may start one. Pull is granted too because docker asks for both together and
-	// its first request is a HEAD of a blob; the registry answers it from what exists, which is nothing.
+	// its first request is a HEAD of a blob; the registry answers it from what exists, which is nothing. Delete lets
+	// the writer drop a blob it uploaded before any manifest linked the name; with no package it deletes nothing.
 	if user == nil {
 		return nil, nil
 	}
@@ -272,7 +273,7 @@ func (s *RegistryService) mayDo(ctx context.Context, user *model.User, name stri
 			return nil, err
 		}
 	}
-	return []string{RegistryActionPull, RegistryActionPush}, nil
+	return []string{RegistryActionPull, RegistryActionPush, RegistryActionDelete}, nil
 }
 
 func (s *RegistryService) writesAnyOf(ctx context.Context, owner store.PathOwner, userID int64) (bool, error) {

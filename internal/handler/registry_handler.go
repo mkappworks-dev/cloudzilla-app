@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -34,6 +35,7 @@ func (h *Handler) RegistryToken(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("WWW-Authenticate", `Basic realm="registry"`)
 		middleware.WriteRegistryError(w, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required", nil)
 	case err != nil:
+		slog.Error("registry: issue token", "error", err)
 		middleware.WriteRegistryError(w, http.StatusInternalServerError, "UNSUPPORTED", "could not issue a token", nil)
 	default:
 		w.Header().Set("Cache-Control", "no-store")

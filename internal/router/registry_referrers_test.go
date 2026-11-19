@@ -18,10 +18,11 @@ type referrerIndex struct {
 	SchemaVersion int    `json:"schemaVersion"`
 	MediaType     string `json:"mediaType"`
 	Manifests     []struct {
-		MediaType    string `json:"mediaType"`
-		Digest       string `json:"digest"`
-		Size         int64  `json:"size"`
-		ArtifactType string `json:"artifactType"`
+		MediaType    string            `json:"mediaType"`
+		Digest       string            `json:"digest"`
+		Size         int64             `json:"size"`
+		ArtifactType string            `json:"artifactType"`
+		Annotations  map[string]string `json:"annotations"`
 	} `json:"manifests"`
 }
 
@@ -38,9 +39,10 @@ func (e *registryEnv) pushReferrer(t *testing.T, auth, name, subject, artifactTy
 	}
 	doc := map[string]any{
 		"schemaVersion": 2, "mediaType": mtOCIManifest, "artifactType": artifactType,
-		"config":  map[string]any{"mediaType": "application/vnd.oci.empty.v1+json", "digest": digestOf(empty), "size": len(empty)},
-		"layers":  []any{map[string]any{"mediaType": "application/octet-stream", "digest": digestOf(layer), "size": len(layer)}},
-		"subject": map[string]any{"mediaType": mtOCIManifest, "digest": subject, "size": 1},
+		"config":      map[string]any{"mediaType": "application/vnd.oci.empty.v1+json", "digest": digestOf(empty), "size": len(empty)},
+		"layers":      []any{map[string]any{"mediaType": "application/octet-stream", "digest": digestOf(layer), "size": len(layer)}},
+		"subject":     map[string]any{"mediaType": mtOCIManifest, "digest": subject, "size": 1},
+		"annotations": map[string]any{"org.example.signer": "ci"},
 	}
 	body, _ := json.Marshal(doc)
 	ref := tag
@@ -94,6 +96,9 @@ func TestReferrers_ASignatureManifestAppearsUnderItsSubject(t *testing.T) {
 	if m.Digest != sig || m.ArtifactType != sigArtifactType || m.MediaType != mtOCIManifest || m.Size == 0 {
 		t.Errorf("descriptor = %+v, want the signature's digest, artifactType, media type and size", m)
 	}
+	if m.Annotations["org.example.signer"] != "ci" {
+		t.Errorf("descriptor annotations = %v, want the manifest's own annotations", m.Annotations)
+	}
 	if rr.Header().Get("OCI-Filters-Applied") != "" {
 		t.Errorf("OCI-Filters-Applied set without a filter")
 	}
@@ -110,6 +115,20 @@ func TestReferrers_AnUnknownSubjectIsAnEmptyIndexNotA404(t *testing.T) {
 	}
 	if idx.SchemaVersion != 2 || idx.MediaType != mtOCIIndex || idx.Manifests == nil || len(idx.Manifests) != 0 {
 		t.Errorf("index = %+v (%s), want an empty manifests array", idx, rr.Body)
+	}
+}
+
+func TestReferrers_ANameNobodyHasPushedYetIsAnEmptyIndexForAWriter(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	auth := e.pushAuth(t, e.ownerPAT, e.newImage)
+
+	rr, idx := e.referrers(t, auth, e.newImage, testDigest, "")
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d %s, want 200", rr.Code, rr.Body)
+	}
+	if rr.Header().Get("Content-Type") != mtOCIIndex || idx.Manifests == nil || len(idx.Manifests) != 0 {
+		t.Errorf("got %s %s, want an empty OCI index", rr.Header().Get("Content-Type"), rr.Body)
 	}
 }
 

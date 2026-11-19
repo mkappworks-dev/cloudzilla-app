@@ -60,8 +60,8 @@ The current order, updated after each re-score. Rows in one step run as parallel
 | ---- | -------------------------- | ----------------------------------------------- | ------------------------------------------- |
 | ✅    | 00–14, 20, 22 (waves 1–2), 23–26, 28–33, 35–40 | —                  | merged (24, 32, 33, 38, 39: #291–#295; 25, 31, 35, 36, 37, 40: #296–#301; 26, 28: #303, #304; 29: #302) |
 | ✅    | 27, 34, 15                 | built from their specs in `.scratch/2026-11-12-edit-and-release-workflows/`, `.scratch/2026-11-12-unfinished-settings-surfaces/` and `.scratch/2026-11-12-repo-rename/` | merged (#308–#326) |
-| 7    | 16, 17, 18, 19             | spec sessions any time; builds here             | 16 done (#327, `.scratch/2026-11-06-security-signing-secrets/`); 17 done (#330, `spec-secret-scanning.md` there); 18 done (#331, `.scratch/2026-11-06-ci-pipelines/`); 19 specced, building on `feat/phase-16-package-registry` (`.scratch/2026-11-06-package-registry/`) |
-| 8    | 22 (wave 3)                | after 19                                        | ready after 19 merges: re-score and polish  |
+| 7    | 16, 17, 18, 19             | spec sessions any time; builds here             | 16 done (#327, `.scratch/2026-11-06-security-signing-secrets/`); 17 done (#330, `spec-secret-scanning.md` there); 18 done (#331, `.scratch/2026-11-06-ci-pipelines/`); 19 built on `feat/phase-16-package-registry` (`.scratch/2026-11-06-package-registry/`), PR to open |
+| 8    | 22 (wave 3)                | after 19                                        | ready: re-score and polish (19's PR is to open)  |
 | —    | 21 mock generator          | —                                               | wontfix: mocks stay hand-written            |
 
 Polish tickets update the hand mocks in `mockups/` in the same PR as the page (ticket 21, the generator, is `wontfix`).

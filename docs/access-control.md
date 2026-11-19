@@ -1254,6 +1254,9 @@ that owns the project, else 404) before the service check.
 
 ### Container Registry (`/v2`)
 
+The whole registry, including its linking rules and operations, is in [package-registry](./package-registry.md); this
+section holds the routes and the auth and status-code decisions.
+
 | Method | Path                   | Auth                                           | AuthZ Check                                   | Handler       |
 | ------ | ---------------------- | ---------------------------------------------- | --------------------------------------------- | ------------- |
 | GET    | `/v2/token`            | Basic `czp_` PAT (or none, for anonymous pull) | Access list = request ∩ CanRead/CanWrite      | RegistryToken |
@@ -1278,7 +1281,8 @@ on every other route. It may outlive a revoked PAT by its five minutes. `registr
 
 The access list is the request intersected with `CanRead` (`pull`) and `CanWrite` (`push`, `delete`) on the Repository
 the image is linked to, capped by the PAT: `packages:read` allows `pull`, `packages:write` all three. A name with no
-linked image grants `pull` and `push` to a caller with `CanWrite` on any Repository of the path owner, or who holds a
+linked image grants `pull`, `push` and `delete` (a writer may drop a blob it uploaded before a manifest linked the name,
+and with no package it deletes nothing) to a caller with `CanWrite` on any Repository of the path owner, or who holds a
 pending package there. Because a reader's `push` is dropped from the list, a request for it is `401`, which docker shows
 as "unauthorized". The path's first segment is the owner (a user, then an organization, ignoring case); the rest is the
 image name, parsed from the right so it may contain segments called `blobs`, `manifests`, `tags` or `referrers`.

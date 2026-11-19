@@ -38,7 +38,7 @@ People browse an owner's images from their profile, owners need to see their pac
 - [x] The tab lists only packages the viewer can read; a private Repository's package is absent for other users and anonymous viewers
 - [x] The path owner sees Delete and Re-link for every package under the path, a private Repository they cannot read included; nobody else does
 - [x] Settings show usage and quota for a user and an organization; at quota `0` only the usage shows
-- [ ] A token from `cz auth login --scope packages:write` pushes an image on a throwaway server (works with `--scope packages:write --scope repo:read`; see the comment)
+- [x] A token from `cz auth login --scope packages:write` pushes an image on a throwaway server
 - [x] Checked at desktop 1440 in **light and dark** on a throwaway server; the touched standing mocks are updated in the same PR
 - [x] `make generate-templ` re-run and the generated files committed
 - [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
@@ -90,3 +90,9 @@ Throwaway server: a user and an org, each with a public and a private Repository
 
 - Claude, 2026-11-19: the maintainer approved admitting `packages:*` on the exact `GET /api/user`; done in `fe4d719d`
   (scope tests added). The box above is ticked by ticket 09 once a packages-only `cz auth login` pushes an image live.
+
+- Claude, 2026-11-19: closed the last box. On the throwaway server (container, DB `cz_e2e`, built from `feat/phase-16-e2e-docs-roadmap`),
+  `cz auth login --scope packages:write` alone exited 0 and stored the token (the `GET /api/user` verify passes after `fe4d719d`);
+  `docker login` with that token succeeded and `docker push` of single- and multi-platform images worked. The device approval was
+  automated: a script signed in as `admin@example.test` with a session POST to `/login/device` and `/login/device/approve`, not a
+  browser click. Transcript: `/private/tmp/czpkg-e2e/e2e-docker-transcript.txt`.

@@ -180,8 +180,7 @@ leaves nothing. The route is a streamed upload (`middleware.IsStreamedUpload`) a
 deadlines. Deleting a file or version deletes its objects after the rows are gone; a failed object delete is logged and
 leaves an orphan under `packages/generic/` that no `package_files.storage_key` names. Purging a repository or deleting a
 user or organization reads the keys first, lets the cascade drop the rows, then deletes the objects after the commit; a
-failed delete is logged and leaves an orphan, as for release assets. See
-[api-reference](./api-reference.md#generic-packages).
+failed delete is logged and leaves an orphan, as for release assets. See [api-reference](./api-reference.md#packages).
 
 ## Release assets
 
@@ -245,6 +244,8 @@ Job output and `artifacts:` archives from built-in CI ([ci](./ci.md#logs-and-art
   `workflow_artifacts` row names is safe to delete.
 
 ## Registry blobs
+
+The registry as a whole is described in [package-registry](./package-registry.md); this section is the object layout.
 
 Container image layers and configs live under `registry/`, one object per digest, shared by every package. The key is
 the hex digest only, so it always passes the key check. Which package may read a blob is decided by `package_blobs` link

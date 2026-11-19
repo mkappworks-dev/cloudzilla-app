@@ -348,6 +348,7 @@ func TestRegistryToken_AccessIsTheIntersectionOfTheRequestAndWhatTheUserMay(t *t
 		{"packages:write admits pull on its own", e.ownerPAT, e.pubImage, "pull", []string{"pull"}},
 		{"packages:read cannot push", e.ownerReadPAT, e.privImage, "pull,push", []string{"pull"}},
 		{"a new name grants push to a writer of any of the owner's repositories", e.ownerPAT, e.newImage, "pull,push", both},
+		{"a new name lets a writer delete the blobs it uploaded", e.ownerPAT, e.newImage, "pull,push,delete", []string{"delete", "pull", "push"}},
 		{"a new name grants nothing to a stranger", e.strangerPAT, e.newImage, "pull,push", nil},
 		{"a name that is not a valid path grants nothing", e.ownerPAT, e.owner + "/Bad_Name", "pull,push", nil},
 		{"a name with no image part grants nothing", e.ownerPAT, e.owner, "pull,push", nil},

@@ -380,6 +380,10 @@ func (s *RegistryService) Referrers(ctx context.Context, userID int64, name, sub
 		return nil, regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
 	}
 	t, err := s.readTarget(ctx, userID, name)
+	// The referrers API never answers 404; an unknown or unreadable name looks like a name with no referrers.
+	if errors.Is(err, errNameUnknown) {
+		return []store.Referrer{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

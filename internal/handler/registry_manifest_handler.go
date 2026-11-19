@@ -48,6 +48,9 @@ func (h *Handler) registryReferrers(w http.ResponseWriter, r *http.Request, rout
 		if f.ArtifactType != "" {
 			d["artifactType"] = f.ArtifactType
 		}
+		if len(f.Annotations) > 0 {
+			d["annotations"] = f.Annotations
+		}
 		manifests[i] = d
 	}
 	if filter != "" {

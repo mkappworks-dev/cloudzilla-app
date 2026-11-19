@@ -597,3 +597,20 @@ func TestBlobPush_ConcurrentChunkCannotChangeABlobBeingCommitted(t *testing.T) {
 		}
 	}
 }
+
+func TestBlob_AWriterDeletesABlobOfANameNoManifestHasLinkedYet(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	auth := e.bearer(t, e.ownerPAT, "repository:"+e.newImage+":pull,push,delete")
+	data := payload(t, "pending-delete")
+	if rr := e.pushMonolithic(t, auth, e.newImage, data); rr.Code != http.StatusCreated {
+		t.Fatalf("push blob: %d %s", rr.Code, rr.Body)
+	}
+	blob := "/v2/" + e.newImage + "/blobs/" + digestOf(data)
+
+	if rr := e.req(http.MethodDelete, blob, auth, nil); rr.Code != http.StatusAccepted {
+		t.Fatalf("delete: got %d %s, want 202", rr.Code, rr.Body)
+	}
+	if rr := e.req(http.MethodHead, blob, auth, nil); rr.Code != http.StatusNotFound {
+		t.Errorf("head after delete: got %d, want 404", rr.Code)
+	}
+}

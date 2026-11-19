@@ -169,12 +169,12 @@ startup.
   the background after a push, a web commit, a wiki change, an import, a mirror sync, a fork, a template creation, a
   restore, and `cz-admin gc`. Usage can lag a write by one measurement. Unpacked loose objects count at full size until
   `cz-admin gc` prunes them.
-- **Packages.** `quota.{user,org}.package_bytes` is counted apart from storage, against the owner whose name the package
-  carries (the path owner): each distinct blob linked from its packages once, including pending ones, plus generic files
-  and the bytes of open upload sessions. A blob two packages share counts once for that owner, and again for another
-  owner that links it. A superadmin's personal account is exempt. Going over refuses the push or upload naming usage and
-  quota. Zero or a negative `registry.*` or `packages.*` limit, or a non-positive TTL or grace, stops the server at
-  startup.
+- **Packages.** (See [package-registry](./package-registry.md#quotas-and-limits).) `quota.{user,org}.package_bytes` is
+  counted apart from storage, against the owner whose name the package carries (the path owner): each distinct blob
+  linked from its packages once, including pending ones, plus generic files and the bytes of open upload sessions. A
+  blob two packages share counts once for that owner, and again for another owner that links it. A superadmin's personal
+  account is exempt. Going over refuses the push or upload naming usage and quota. Zero or a negative `registry.*` or
+  `packages.*` limit, or a non-positive TTL or grace, stops the server at startup.
 - **Not exact.** A check and the create that follows aren't atomic, so creates racing each other can overshoot the
   repository limit by a few. A pack is capped at the space left when the push starts, so two simultaneous pushes can
   both fit and together pass the quota.

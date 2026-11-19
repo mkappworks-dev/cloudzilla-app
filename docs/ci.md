@@ -267,7 +267,8 @@ steps:
 ```
 
 A writer can read a secret (see above), so use a token of a user who may only write the repositories it has to. See
-[api-reference](./api-reference.md#generic-packages).
+[api-reference](./api-reference.md#packages) and [package-registry](./package-registry.md). A Job container has no
+Docker daemon, so `docker push` from a Job is not possible; use `crane` or `skopeo` with the same secret.
 
 ### Fork pull requests
 

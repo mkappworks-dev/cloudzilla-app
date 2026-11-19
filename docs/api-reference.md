@@ -687,7 +687,8 @@ Percent-encode a tag that contains `/`. The `ETag` is the file's SHA-256 and `Ca
 
 ## Packages
 
-Generic files are described below; container images are pushed and pulled over `/v2` and managed here.
+Generic files are described below; container images are pushed and pulled over `/v2` and managed here. The overview is
+[package-registry](./package-registry.md).
 
 | Method | Path                                                                | Auth                                                             | Description                                                                                                                                                             |
 | ------ | ------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
