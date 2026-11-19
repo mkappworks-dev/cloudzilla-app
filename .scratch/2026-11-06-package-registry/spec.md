@@ -2,7 +2,7 @@
 
 Created: 2026-11-18
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Decisions confirmed by the maintainer on 2026-11-18 over three grill rounds and two independent reviews
 (recommendations accepted as written). The design mock decisions are in [README.md](./README.md); the standing mocks
