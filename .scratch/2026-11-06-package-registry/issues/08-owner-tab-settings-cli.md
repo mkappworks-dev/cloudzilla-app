@@ -87,3 +87,6 @@ Throwaway server: a user and an org, each with a public and a private Repository
   `account_settings.html` and `org_settings.html` show the package line; `COVERAGE.md` lists the page and its states.
 - `make test-integration` starts its own database; `go test ./...` ran on `cz_t08`. `make build-css` needs `bin/tailwindcss`, absent in
   this worktree: I ran the main checkout's binary, and `main.css` is gitignored.
+
+- Claude, 2026-11-19: the maintainer approved admitting `packages:*` on the exact `GET /api/user`; done in `fe4d719d`
+  (scope tests added). The box above is ticked by ticket 09 once a packages-only `cz auth login` pushes an image live.
