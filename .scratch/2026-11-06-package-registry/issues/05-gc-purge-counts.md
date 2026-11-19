@@ -38,7 +38,7 @@ Deleted images and aborted pushes must free disk without ever corrupting an imag
 - [x] Purging a Repository removes only its linked packages; deleting the path owner removes everything under the path, including a package linked to a Repository that was transferred away
 - [x] Three pulls by tag and one by digest give the expected manifest and tag counts after a flush; shutdown flushes
 - [x] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
-- [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
+- [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
 - [x] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
 - [x] Status set to `done` and these boxes ticked in the same commit
 
@@ -73,3 +73,6 @@ Throwaway server with `registry.gc_grace: 1m`: push, delete a tag and manifest, 
   scratch DB. No page changed, so there is no light and dark check and the standing mocks are unchanged.
 - **Not done:** the throwaway-server check. The sweep is hourly with no trigger, so a live run would mean waiting an hour or
   adding a debug hook; the behaviour is covered by the clock-injected tests instead.
+
+- Claude, 2026-11-19: the throwaway-server box is ticked from ticket 09's live run (`registry.gc_grace=1m`, delete, two
+  restarts: the image's objects gone, the shared layer kept; `/private/tmp/czpkg-e2e/gc-live-transcript.txt`).

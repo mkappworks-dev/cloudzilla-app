@@ -41,7 +41,7 @@ Signing tools need the referrers API, and the Packages pages need queries and ac
 - [x] Re-link to a Repository of another owner is refused, to one of the path owner's is accepted, and after a transfer the path owner (not a manager of the new owner) can re-link
 - [x] The README method resolves a relative image and link the same way the code tab does
 - [x] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
-- [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
+- [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
 - [x] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
 - [x] Status set to `done` and these boxes ticked in the same commit
 
@@ -62,3 +62,6 @@ Throwaway server: `cosign sign` (or `oras attach`) an image if available, otherw
 - README: `CodeService.RepoReadme` is the lookup loop extracted from the repo page, plus a link resolver (`markdown.RenderRepoFile`): a relative link goes to `/{owner}/{repo}/blob/{branch}/...`, an image to `.../raw/{branch}/...`, a leading `/` is the repository root, `..` stops at the root, and schemes, `//host` and `#fragment` are untouched. The code tab did not resolve relative links at all before, so the repo page itself now resolves them (a small fix, not a layout change); no standing mock changes.
 - Docs: `docs/api-reference.md` only; there is no `docs/package-registry.md` yet (ticket 09 owns the final shape).
 - Not done: `make test-integration` (it starts its own database; `go test ./...` ran on the `cz_t10` scratch DB instead, as in earlier tickets) and the throwaway-server check with a real signing tool: `cosign`/`oras` are not installed, so the referrers flow is covered by the in-test OCI client only.
+
+- Claude, 2026-11-19: the throwaway-server box is ticked from ticket 09's OCI conformance run against a containerised
+  server, whose referrers category passed after 09 fixed an unknown name's empty index and the descriptor annotations.
