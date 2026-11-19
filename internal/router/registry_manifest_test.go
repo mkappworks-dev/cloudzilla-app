@@ -562,3 +562,29 @@ func TestLinking_ConcurrentFirstPushesOfOneNameAllSucceed(t *testing.T) {
 		}
 	}
 }
+
+func TestToken_ANameLinkedToASoftDeletedRepositoryGrantsNothing(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	testutil.Exec(t, e.db, `UPDATE repositories SET deleted_at = NOW() WHERE id = $1`, e.pubRepoID)
+
+	rr := e.token(e.ownerPAT, "repository:"+e.pubImage+":pull,push,delete")
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d %s", rr.Code, rr.Body)
+	}
+	if got := actionsFor(t, rr, e.pubImage); got != nil {
+		t.Errorf("granted %v on an image of a deleted repository, want nothing", got)
+	}
+}
+
+func TestLinking_APrivateRepositoryTheWriterCannotReadIsRefusedLikeNoMatch(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	_, writerPAT := e.writer(t)
+
+	hidden := e.firstPush(t, writerPAT, e.owner+"/priv", nil)
+	nothing := e.firstPush(t, writerPAT, e.owner+"/nomatch", nil)
+
+	if hidden.Code != nothing.Code || hidden.Body.String() != nothing.Body.String() {
+		t.Errorf("a private repository's name is told apart: %d %s vs %d %s", hidden.Code, hidden.Body, nothing.Code, nothing.Body)
+	}
+}

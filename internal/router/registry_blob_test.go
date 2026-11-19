@@ -19,6 +19,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -612,5 +613,27 @@ func TestBlob_AWriterDeletesABlobOfANameNoManifestHasLinkedYet(t *testing.T) {
 	}
 	if rr := e.req(http.MethodHead, blob, auth, nil); rr.Code != http.StatusNotFound {
 		t.Errorf("head after delete: got %d, want 404", rr.Code)
+	}
+}
+
+func TestBlobMount_IsRefusedWhenTheTargetOwnersQuotaCannotHoldTheBlob(t *testing.T) {
+	e := newRegistryEnv(t, func(c *config.Config) { c.Quota.User.PackageBytes = 1 << 20 })
+	if _, err := e.svc.Repo.Create(context.Background(), e.strangerID, e.stranger, "mine", "", false, service.RepoInitOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	big := bytes.Repeat([]byte("x"), 800<<10)
+	oauth := e.pushAuth(t, e.ownerPAT, e.pubImage)
+	e.pushMonolithic(t, oauth, e.pubImage, big)
+	mine := e.stranger + "/mine"
+	sauth := e.pushAuth(t, e.strangerPAT, mine)
+	if rr := e.pushMonolithic(t, sauth, mine, bytes.Repeat([]byte("y"), 800<<10)); rr.Code != http.StatusCreated {
+		t.Fatalf("filler: got %d %s", rr.Code, rr.Body)
+	}
+	sauth = e.bearer(t, e.strangerPAT, "repository:"+mine+":pull,push", "repository:"+e.pubImage+":pull")
+
+	rr := e.req(http.MethodPost, "/v2/"+mine+"/blobs/uploads/?mount="+digestOf(big)+"&from="+e.pubImage, sauth, nil)
+
+	if rr.Code != http.StatusForbidden || ociErrorCode(t, rr) != "DENIED" {
+		t.Errorf("got %d %s, want 403 DENIED", rr.Code, rr.Body)
 	}
 }

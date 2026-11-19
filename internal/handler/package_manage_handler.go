@@ -56,9 +56,11 @@ func (h *Handler) GetContainerPackage(w http.ResponseWriter, r *http.Request) {
 	if gu != nil {
 		viewer = &gu.ID
 	}
-	d, err := h.Services.Package.ContainerDetail(r.Context(), repo.OwnerName, chi.URLParam(r, "*"), viewer)
-	if err == nil && (d.Package.RepoID == nil || *d.Package.RepoID != repo.ID) {
-		err = service.ErrPackageNotFound
+	name := chi.URLParam(r, "*")
+	sum, err := h.Services.Package.InRepo(r.Context(), repo, viewer, model.PackageTypeContainer, name)
+	var d *service.ContainerDetail
+	if err == nil {
+		d, err = h.Services.Package.ContainerDetail(r.Context(), sum.OwnerName, name, viewer)
 	}
 	if errors.Is(err, service.ErrPackageNotFound) {
 		writeError(w, http.StatusNotFound, "package not found")

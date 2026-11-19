@@ -225,23 +225,19 @@ func (s *PackageService) Relink(ctx context.Context, actorID, packageID, repoID 
 	return nil
 }
 
-// LinkedPackageID is the id of the package of typ and name linked to repo, or ErrPackageNotFound. A container
-// package's name is its path under the path owner.
+// LinkedPackageID is the id of the package of typ and name linked to repo, or ErrPackageNotFound. It looks the
+// package up by linked Repository, not by path under the Repository's owner, which a transfer leaves behind.
 func (s *PackageService) LinkedPackageID(ctx context.Context, repo *model.Repository, typ, name string) (int64, error) {
-	var userID, orgID int64
-	if repo.OrgID != 0 {
-		orgID = repo.OrgID
-	} else {
-		userID = repo.OwnerID
-	}
-	p, err := s.packages.LinkedPackage(ctx, userID, orgID, typ, name)
-	if errors.Is(err, sql.ErrNoRows) || err == nil && (p.RepoID == nil || *p.RepoID != repo.ID) {
-		return 0, ErrPackageNotFound
-	}
+	list, err := s.packages.ListByRepo(ctx, repo.ID)
 	if err != nil {
 		return 0, err
 	}
-	return p.ID, nil
+	for i := range list {
+		if list[i].Type == typ && list[i].Name == name {
+			return list[i].ID, nil
+		}
+	}
+	return 0, ErrPackageNotFound
 }
 
 // InRepo returns the package of typ and name linked to repo, or ErrPackageNotFound, also when viewerID cannot read repo.

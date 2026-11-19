@@ -53,7 +53,8 @@ func (s *RegistryService) linkPending(ctx context.Context, userID int64, t uploa
 		return nil
 	}
 	first, _, _ := strings.Cut(image, "/")
-	if repo := find(first); repo != nil {
+	// A private Repository the pusher can't read is treated as no match, so its existence doesn't leak.
+	if repo := find(first); repo != nil && s.repos.CanRead(ctx, repo, &userID) {
 		if !s.repos.CanWrite(ctx, repo, userID) {
 			return errDenied
 		}

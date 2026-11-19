@@ -594,3 +594,14 @@ func TestRegistryRateLimit_CountsPerUserInItsOwnBucket(t *testing.T) {
 		t.Errorf("token request: got %d, resource %q, want 200 in core", rr.Code, rr.Header().Get("X-RateLimit-Resource"))
 	}
 }
+
+func TestRegistry_AnOwnerSegmentThatCanNeverBeAValidPathIsNamedInTheRefusal(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+
+	rr := e.do(http.MethodGet, "/v2/bad-/app/tags/list", "")
+
+	msg := rr.Body.String()
+	if rr.Code != http.StatusBadRequest || ociErrorCode(t, rr) != "NAME_INVALID" || !strings.Contains(msg, "owner") || !strings.Contains(msg, "bad-") {
+		t.Errorf("got %d %s, want 400 NAME_INVALID naming the owner bad-", rr.Code, msg)
+	}
+}

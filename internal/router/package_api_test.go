@@ -150,3 +150,17 @@ func TestPackageAPI_RelinkMovesAPackageWithinThePathOwnersRepositories(t *testin
 		t.Errorf("the package under its new repository: got %d, want 200", rr.Code)
 	}
 }
+
+func TestPackageAPI_AfterATransferTheContainerRoutesStillFindThePackage(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	pub := e.repo(t, e.owner, "pub")
+	newOwner := userName(t, e.db, e.transfer(t, pub))
+	base := "/api/repos/" + newOwner + "/pub/packages/container/pubimg"
+
+	if rr := e.api(http.MethodGet, base, "", nil); rr.Code != http.StatusOK {
+		t.Errorf("detail: got %d %s, want 200", rr.Code, rr.Body)
+	}
+	if rr := e.api(http.MethodDelete, base, e.ownerPAT, nil); rr.Code != http.StatusNoContent {
+		t.Errorf("path owner delete: got %d %s, want 204", rr.Code, rr.Body)
+	}
+}

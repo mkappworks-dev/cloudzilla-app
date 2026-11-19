@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -82,7 +83,12 @@ func RegistryAuth(v RegistryVerifier, realm, serviceName string) func(http.Handl
 				return
 			}
 			if !service.ValidRegistryName(route.Name) {
-				WriteRegistryError(w, http.StatusBadRequest, "NAME_INVALID", "invalid repository name", nil)
+				msg := "invalid repository name"
+				if owner, _, _ := strings.Cut(route.Name, "/"); !service.ValidRegistryName(owner) {
+					msg = fmt.Sprintf("the owner %q can never be a valid image path: names are lowercase letters and digits "+
+						"joined by single separators (. _ __ -), with no leading or trailing separator", owner)
+				}
+				WriteRegistryError(w, http.StatusBadRequest, "NAME_INVALID", msg, nil)
 				return
 			}
 			action := service.RegistryActionFor(r.Method)

@@ -585,5 +585,19 @@ func (s *RegistryService) MountBlob(ctx context.Context, userID int64, name, fro
 	if err != nil {
 		return false, err
 	}
+	size, err := s.registry.BlobSize(ctx, src.packageID, digest)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if err := s.packages.CheckQuota(ctx, dst.quotaOwner(), size); err != nil {
+		var q *PackageQuotaError
+		if errors.As(err, &q) {
+			return false, regErr(http.StatusForbidden, "DENIED", q.Error())
+		}
+		return false, err
+	}
 	return s.registry.CopyBlobLink(ctx, src.packageID, dst.packageID, digest)
 }
