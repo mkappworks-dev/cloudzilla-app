@@ -74,3 +74,12 @@ Final throwaway server run on the integration branch: Docker and conformance as 
   or mock changed in this branch.
 - Docs: `docs/package-registry.md` (final shape), `internal/config/package_registry_doc_test.go` (keys named vs defaults), cross-links,
   CLAUDE.md line, ROADMAP 16.1/16.2 (migration 142), uiux ticket 19 and Run order. GLOSSARY already has the package terms.
+
+- 2026-11-19, review fixes (`fix/phase-16-review`): a first push to a name matching a private Repository the pusher cannot read now gets the
+  same refusal as a name that matches nothing; the JSON container GET/DELETE/relink look the package up by linked Repository, so they keep
+  working after a transfer; an owner segment that can never be a valid image path is named in the `NAME_INVALID` message; `MountBlob`
+  checks the target owner's quota before linking. Standards: ticket narration and "not available yet" wording gone from `Registry`,
+  `ownerPackagesData` moved into `user_page_handler.go`, `writeJSONAs` for the OCI index type, one `finishPackageChange`, `errDigestInvalid()`
+  and `RegCode*` constants, `packageForm`/`ownerPackageForm` return structs. Spec: Decisions 9 and 22 and the Middleware bullet corrected.
+  Not changed: a linked name whose Repository is soft-deleted already answered with empty access (`GetByID` filters `deleted_at`); a router
+  test now pins it.

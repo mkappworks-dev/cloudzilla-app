@@ -30,7 +30,7 @@ func linkRefusal(owner, reason string) *RegistryError {
 	if reason != "" {
 		msg = reason + "; " + msg
 	}
-	return regErr(http.StatusForbidden, "DENIED", msg)
+	return regErr(http.StatusForbidden, RegCodeDenied, msg)
 }
 
 // linkPending links a package created by a blob upload to a Repository at its first manifest push. A Repository named

@@ -33,15 +33,38 @@ type RegistryError struct {
 
 func (e *RegistryError) Error() string { return e.Code + ": " + e.Message }
 
+// OCI distribution error codes.
+const (
+	RegCodeBlobUnknown             = "BLOB_UNKNOWN"
+	RegCodeBlobUploadInvalid       = "BLOB_UPLOAD_INVALID"
+	RegCodeBlobUploadUnknown       = "BLOB_UPLOAD_UNKNOWN"
+	RegCodeDenied                  = "DENIED"
+	RegCodeDigestInvalid           = "DIGEST_INVALID"
+	RegCodeManifestBlobUnknown     = "MANIFEST_BLOB_UNKNOWN"
+	RegCodeManifestInvalid         = "MANIFEST_INVALID"
+	RegCodeManifestUnknown         = "MANIFEST_UNKNOWN"
+	RegCodeNameInvalid             = "NAME_INVALID"
+	RegCodeNameUnknown             = "NAME_UNKNOWN"
+	RegCodePaginationNumberInvalid = "PAGINATION_NUMBER_INVALID"
+	RegCodeSizeInvalid             = "SIZE_INVALID"
+	RegCodeTooManyRequests         = "TOOMANYREQUESTS"
+	RegCodeUnauthorized            = "UNAUTHORIZED"
+	RegCodeUnsupported             = "UNSUPPORTED"
+)
+
+func errDigestInvalid() *RegistryError {
+	return regErr(http.StatusBadRequest, RegCodeDigestInvalid, "digest must be sha256:<64 hex digits>")
+}
+
 func regErr(status int, code, message string) *RegistryError {
 	return &RegistryError{Status: status, Code: code, Message: message}
 }
 
 var (
-	errNameUnknown   = regErr(http.StatusNotFound, "NAME_UNKNOWN", "repository name not known to registry")
-	errBlobUnknown   = regErr(http.StatusNotFound, "BLOB_UNKNOWN", "blob unknown to registry")
-	errUploadUnknown = regErr(http.StatusNotFound, "BLOB_UPLOAD_UNKNOWN", "blob upload unknown to registry")
-	errNoStorage     = regErr(http.StatusInternalServerError, "UNSUPPORTED", "registry storage is not configured")
+	errNameUnknown   = regErr(http.StatusNotFound, RegCodeNameUnknown, "repository name not known to registry")
+	errBlobUnknown   = regErr(http.StatusNotFound, RegCodeBlobUnknown, "blob unknown to registry")
+	errUploadUnknown = regErr(http.StatusNotFound, RegCodeBlobUploadUnknown, "blob upload unknown to registry")
+	errNoStorage     = regErr(http.StatusInternalServerError, RegCodeUnsupported, "registry storage is not configured")
 )
 
 var uuidRe = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
@@ -187,7 +210,7 @@ func (s *RegistryService) writeTarget(ctx context.Context, userID int64, name st
 			return uploadTarget{}, err
 		}
 		if !s.repos.CanWrite(ctx, repo, userID) {
-			return uploadTarget{}, regErr(http.StatusForbidden, "DENIED", "requested access to the resource is denied")
+			return uploadTarget{}, regErr(http.StatusForbidden, RegCodeDenied, "requested access to the resource is denied")
 		}
 		return t, nil
 	case !errors.Is(err, errNameUnknown) || !create || userID == 0:
@@ -210,7 +233,7 @@ func (s *RegistryService) startPending(ctx context.Context, userID int64, name s
 	if may, err := s.writesAnyOf(ctx, owner, userID); err != nil {
 		return uploadTarget{}, err
 	} else if !may {
-		return uploadTarget{}, regErr(http.StatusForbidden, "DENIED", "requested access to the resource is denied")
+		return uploadTarget{}, regErr(http.StatusForbidden, RegCodeDenied, "requested access to the resource is denied")
 	}
 	now := s.now()
 	stale, err := s.registry.DeleteExpiredPending(ctx, owner, image, userID, now)
@@ -223,7 +246,7 @@ func (s *RegistryService) startPending(ctx context.Context, userID int64, name s
 		return uploadTarget{}, err
 	}
 	if held >= s.cfg.MaxPendingPerUser {
-		return uploadTarget{}, regErr(http.StatusTooManyRequests, "TOOMANYREQUESTS", "too many unpublished packages; push a manifest or wait for them to expire")
+		return uploadTarget{}, regErr(http.StatusTooManyRequests, RegCodeTooManyRequests, "too many unpublished packages; push a manifest or wait for them to expire")
 	}
 	id, err := s.registry.CreatePending(ctx, owner, image, userID, now.Add(s.cfg.UploadTTL))
 	if errors.Is(err, store.ErrPendingExists) {
@@ -256,7 +279,7 @@ func (s *RegistryService) StartUpload(ctx context.Context, userID int64, name st
 		return nil, err
 	}
 	if open >= s.cfg.MaxSessionsPerUser {
-		return nil, regErr(http.StatusTooManyRequests, "TOOMANYREQUESTS", "too many uploads in progress")
+		return nil, regErr(http.StatusTooManyRequests, RegCodeTooManyRequests, "too many uploads in progress")
 	}
 	id, err := newUUID()
 	if err != nil {
@@ -364,7 +387,7 @@ func (s *RegistryService) AppendUpload(ctx context.Context, userID int64, name, 
 }
 
 func rangeNotSatisfiable(have int64) *RegistryError {
-	e := regErr(http.StatusRequestedRangeNotSatisfiable, "BLOB_UPLOAD_INVALID", "chunk is out of order")
+	e := regErr(http.StatusRequestedRangeNotSatisfiable, RegCodeBlobUploadInvalid, "chunk is out of order")
 	e.Headers = map[string]string{"Range": uploadRange(have)}
 	return e
 }
@@ -416,7 +439,7 @@ func (s *RegistryService) appendSpool(ctx context.Context, sess *store.UploadSes
 	}
 	if rng != nil && rng.End-rng.Start+1 != n {
 		rollback()
-		return 0, regErr(http.StatusBadRequest, "SIZE_INVALID", "the chunk does not match its Content-Range")
+		return 0, regErr(http.StatusBadRequest, RegCodeSizeInvalid, "the chunk does not match its Content-Range")
 	}
 	if n > 0 {
 		if err := s.registry.SetSessionBytes(ctx, sess.ID, sess.Bytes+n); err != nil {
@@ -431,14 +454,14 @@ func (s *RegistryService) appendSpool(ctx context.Context, sess *store.UploadSes
 // tightest of the blob cap, the user's in-flight cap and the owner's quota wins.
 func (s *RegistryService) allowance(ctx context.Context, sess *store.UploadSession, t uploadTarget) (int64, *RegistryError, error) {
 	allowed := s.cfg.MaxBlobBytes - sess.Bytes
-	refusal := regErr(http.StatusRequestEntityTooLarge, "SIZE_INVALID", "blob exceeds the maximum size")
+	refusal := regErr(http.StatusRequestEntityTooLarge, RegCodeSizeInvalid, "blob exceeds the maximum size")
 
 	_, held, err := s.registry.OpenSessions(ctx, sess.UserID, s.now().Add(-s.cfg.UploadTTL))
 	if err != nil {
 		return 0, nil, err
 	}
 	if room := s.cfg.MaxInflightBytesPerUser - held; room < allowed {
-		allowed, refusal = room, regErr(http.StatusTooManyRequests, "TOOMANYREQUESTS", "too many bytes in flight for this user")
+		allowed, refusal = room, regErr(http.StatusTooManyRequests, RegCodeTooManyRequests, "too many bytes in flight for this user")
 	}
 
 	room, err := s.packages.Headroom(ctx, t.quotaOwner())
@@ -451,7 +474,7 @@ func (s *RegistryService) allowance(ctx context.Context, sess *store.UploadSessi
 			return 0, nil, uerr
 		}
 		allowed = room
-		refusal = regErr(http.StatusForbidden, "DENIED", (&PackageQuotaError{Used: used, Limit: used + room}).Error())
+		refusal = regErr(http.StatusForbidden, RegCodeDenied, (&PackageQuotaError{Used: used, Limit: used + room}).Error())
 	}
 	return max(allowed, 0), refusal, nil
 }
@@ -460,7 +483,7 @@ func (s *RegistryService) allowance(ctx context.Context, sess *store.UploadSessi
 // and the blob is stored and linked to the package. It returns the digest.
 func (s *RegistryService) CompleteUpload(ctx context.Context, userID int64, name, id, digest string, body io.Reader, rng *ContentRange) (string, error) {
 	if !ValidBlobDigest(digest) {
-		return "", regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+		return "", errDigestInvalid()
 	}
 	if uuidRe.MatchString(id) {
 		defer s.lockSession(id)()
@@ -486,14 +509,14 @@ func (s *RegistryService) CompleteUpload(ctx context.Context, userID int64, name
 	}
 	if got := "sha256:" + sum; got != digest {
 		_ = s.dropSession(ctx, sess)
-		return "", &RegistryError{Status: http.StatusBadRequest, Code: "DIGEST_INVALID", Message: "the digest does not match the uploaded content", Detail: map[string]string{"computed": got}}
+		return "", &RegistryError{Status: http.StatusBadRequest, Code: RegCodeDigestInvalid, Message: "the digest does not match the uploaded content", Detail: map[string]string{"computed": got}}
 	}
 	// Concurrent sessions may each have passed the PATCH check.
 	if err := s.packages.CheckQuota(ctx, t.quotaOwner(), 0); err != nil {
 		var q *PackageQuotaError
 		if errors.As(err, &q) {
 			_ = s.dropSession(ctx, sess)
-			return "", regErr(http.StatusForbidden, "DENIED", q.Error())
+			return "", regErr(http.StatusForbidden, RegCodeDenied, q.Error())
 		}
 		return "", err
 	}
@@ -539,7 +562,7 @@ func (s *RegistryService) storeBlob(ctx context.Context, packageID int64, digest
 // StatBlob is the size of the blob name links at digest.
 func (s *RegistryService) StatBlob(ctx context.Context, userID int64, name, digest string) (int64, error) {
 	if !ValidBlobDigest(digest) {
-		return 0, regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+		return 0, errDigestInvalid()
 	}
 	t, err := s.readTarget(ctx, userID, name)
 	if err != nil {
@@ -595,7 +618,7 @@ func (s *RegistryService) MountBlob(ctx context.Context, userID int64, name, fro
 	if err := s.packages.CheckQuota(ctx, dst.quotaOwner(), size); err != nil {
 		var q *PackageQuotaError
 		if errors.As(err, &q) {
-			return false, regErr(http.StatusForbidden, "DENIED", q.Error())
+			return false, regErr(http.StatusForbidden, RegCodeDenied, q.Error())
 		}
 		return false, err
 	}

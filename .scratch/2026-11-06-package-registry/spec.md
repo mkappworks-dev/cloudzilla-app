@@ -39,7 +39,7 @@ work.
 | 6   | The registry JWT is an HMAC token keyed from `auth.jwt_secret` with a purpose label (so it works without `security.secret_key`), carries `aud` and `typ: registry`, is never accepted as a session, and may outlive a revoked PAT by its 5 minutes (accepted). |
 | 7   | CI gets no registry token in v1: the `czj_` job token stays git-fetch only. A workflow uses a `packages:read`/`packages:write` PAT in `secrets.*` with `crane`, `skopeo` or `curl`. The Job container has no Docker daemon, so `docker push` from a Job is out. |
 | 8   | Blob objects are shared and content-addressed (one per digest). **Per-package** link rows grant access, never the existence of the object. |
-| 9   | Docker uploads blobs before the manifest, so the first upload to a new name creates a **pending package**: no Repository, visible to nobody, unique per (path owner, name, creator), usable only by its creator, at most 20 per user, and expiring 24 h after creation whatever happens. A new name needs `CanWrite` on at least one Repository of the path owner. |
+| 9   | Docker uploads blobs before the manifest, so the first upload to a new name creates a **pending package**: no Repository, visible to nobody, unique per (path owner, name, creator), usable only by its creator, at most 20 per user, and expiring `registry.upload_ttl` (24 h) after creation whatever happens. A new name needs `CanWrite` on at least one Repository of the path owner. |
 | 10  | Uploads spool to a temp file under a named directory and are put with their exact size. Limits: 5 GiB per blob, 10 open sessions and 10 GiB in flight per user, sessions expire 24 h after creation. A restart loses in-flight uploads (accepted). |
 | 11  | Quota keys `quota.user.package_bytes` and `quota.org.package_bytes`, default `0` (off), separate from the git storage quota. The **path owner** pays: usage is each distinct blob linked from the path owner's packages once, plus generic files, plus in-flight bytes. A pending package's blobs count against its path owner. Over the quota is `DENIED`. |
 | 12  | Deleting a tag keeps its manifest as an untagged manifest. Deleting a manifest deletes its tags. A blob `DELETE` is refused while a manifest of the package references it. An hourly sweep unlinks unreferenced links (aborted pushes) older than 24 h and deletes unlinked blobs 24 h after their last link went. No auto-deletion of untagged manifests; no retention policies. |
@@ -52,7 +52,7 @@ work.
 | 19  | The package page's readme card renders the linked Repository's default-branch README, with relative links resolved against the code tab. |
 | 20  | Tags and versions are deletable with `CanWrite` on the linked Repository. Deleting a whole package needs `CanManage` there (or path ownership, decision 14) and a typed name. Re-linking is a path-owner or manager action within the path owner's Repositories. |
 | 21  | Generic files: `PUT /api/repos/{owner}/{repo}/packages/generic/{name}/{version}/{filename}` and `GET /{owner}/{repo}/packages/generic/{name}/{version}/{filename}`, Bearer or Basic (PAT). Names outside `[A-Za-z0-9._-]`, `.` and `..` are `400`, never cleaned. A name already used by another Repository of the owner is `409`. sha256 per file, 512 MiB per file, re-upload is `409`. |
-| 22  | Manifests with a `subject` are accepted and `GET /v2/{name}/referrers/{digest}` is served from the database. `tags/list` lists every tag; only untagged referrer manifests are left out of the UI's untagged list. |
+| 22  | Manifests with a `subject` are accepted and `GET /v2/{name}/referrers/{digest}` is served from the database. `tags/list` lists every tag; only untagged referrer manifests, and manifests referenced by an index of the same package, are left out of the UI's untagged list. |
 | 23  | `GET /v2/_catalog` is `404`. `registry.enabled` (default true; false makes `/v2` answer `404`). The token realm is built from `server.base_url`. A reverse proxy must pass `/v2/` with no body limit and no buffering. `/v2` is not in the setup path check: before setup it redirects to `/setup`, as git transport does. |
 | 24  | One PR for the spec, from the integration branch `feat/phase-16-package-registry`; each ticket's PR targets that branch. |
 
@@ -208,7 +208,8 @@ names do not leak. Docker shows the same "unauthorized" for a reader pushing.
 - **Rate limits.** The `registry` resource is classified for `/v2/*`. The subject lookup recognises a registry JWT
   before it tries an OAuth token (which costs a database read), and keys a Basic PAT on the generic paths per user.
 - **Middleware.** `IsStreamedUpload` (today `POST` on the release-asset path only) extends to `PATCH`, `PUT` and `POST`
-  on `/v2/` and the generic upload path; CSRF exempts `/v2/` and Basic-authenticated generic uploads; `RepoAlias`'s path
+  on `/v2/` and the generic upload path; CSRF exempts `/v2/` and Basic-authenticated requests on the generic API path (uploads and deletes), since a browser
+  cannot send Basic on a cross-site form; `RepoAlias`'s path
   split skips `v2`.
 - **Generic.** Upload streams to a temp file while hashing, then puts the object; its key ends in a random token, never
   the user's name. Download responses carry `Content-Disposition: attachment`, `nosniff`,

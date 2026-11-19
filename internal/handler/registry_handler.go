@@ -30,13 +30,13 @@ func (h *Handler) RegistryToken(w http.ResponseWriter, r *http.Request) {
 	var forbidden *service.RegistryForbiddenError
 	switch {
 	case errors.As(err, &forbidden):
-		middleware.WriteRegistryError(w, http.StatusForbidden, "DENIED", forbidden.Reason, nil)
+		middleware.WriteRegistryError(w, http.StatusForbidden, service.RegCodeDenied, forbidden.Reason, nil)
 	case errors.Is(err, service.ErrRegistryCredentials):
 		w.Header().Set("WWW-Authenticate", `Basic realm="registry"`)
-		middleware.WriteRegistryError(w, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required", nil)
+		middleware.WriteRegistryError(w, http.StatusUnauthorized, service.RegCodeUnauthorized, "authentication required", nil)
 	case err != nil:
 		slog.Error("registry: issue token", "error", err)
-		middleware.WriteRegistryError(w, http.StatusInternalServerError, "UNSUPPORTED", "could not issue a token", nil)
+		middleware.WriteRegistryError(w, http.StatusInternalServerError, service.RegCodeUnsupported, "could not issue a token", nil)
 	default:
 		w.Header().Set("Cache-Control", "no-store")
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -48,7 +48,7 @@ func (h *Handler) RegistryToken(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Registry serves every other /v2 path once RegistryAuth has admitted it. Operations land here as tickets build them.
+// Registry serves every other /v2 path once RegistryAuth has admitted it.
 func (h *Handler) Registry(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(registryVersionHeader, "registry/2.0")
 	rest := strings.TrimPrefix(strings.TrimPrefix(r.URL.Path, "/v2"), "/")
@@ -58,17 +58,17 @@ func (h *Handler) Registry(w http.ResponseWriter, r *http.Request) {
 	}
 	route, ok := middleware.RegistryRouteFromContext(r.Context())
 	if !ok {
-		middleware.WriteRegistryError(w, http.StatusNotFound, "UNSUPPORTED", "no such registry operation", nil)
+		middleware.WriteRegistryError(w, http.StatusNotFound, service.RegCodeUnsupported, "no such registry operation", nil)
 		return
 	}
 	if h.registryBlobOp(w, r, route) || h.registryManifestOp(w, r, route) {
 		return
 	}
-	middleware.WriteRegistryError(w, http.StatusMethodNotAllowed, "UNSUPPORTED", "this registry operation is not available yet",
+	middleware.WriteRegistryError(w, http.StatusMethodNotAllowed, service.RegCodeUnsupported, "this registry operation is not supported",
 		map[string]string{"name": route.Name, "operation": string(route.Op)})
 }
 
 // RegistryDisabled answers the whole /v2 tree when registry.enabled is false.
 func (h *Handler) RegistryDisabled(w http.ResponseWriter, _ *http.Request) {
-	middleware.WriteRegistryError(w, http.StatusNotFound, "UNSUPPORTED", "the registry is disabled", nil)
+	middleware.WriteRegistryError(w, http.StatusNotFound, service.RegCodeUnsupported, "the registry is disabled", nil)
 }

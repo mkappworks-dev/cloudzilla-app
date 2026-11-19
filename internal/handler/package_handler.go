@@ -295,7 +295,7 @@ func (h *Handler) DeleteGenericFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := h.Services.Package.DeleteGenericFile(r.Context(), repo.ID, chi.URLParam(r, "name"), chi.URLParam(r, "version"), chi.URLParam(r, "filename"))
-	h.finishPackageDelete(w, repo, err)
+	h.finishPackageChange(w, repo, err)
 }
 
 // DeleteGenericVersion handles DELETE .../packages/generic/{name}/{version}.
@@ -305,37 +305,38 @@ func (h *Handler) DeleteGenericVersion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := h.Services.Package.DeleteGenericVersion(r.Context(), repo.ID, chi.URLParam(r, "name"), chi.URLParam(r, "version"))
-	h.finishPackageDelete(w, repo, err)
+	h.finishPackageChange(w, repo, err)
 }
 
-func (h *Handler) finishPackageDelete(w http.ResponseWriter, repo *model.Repository, err error) {
-	switch {
-	case errors.Is(err, service.ErrPackageNotFound):
-		writeError(w, http.StatusNotFound, "package not found")
-	case err != nil:
-		slog.Error("delete generic package failed", "repo_id", repo.ID, "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
-	default:
-		w.WriteHeader(http.StatusNoContent)
-	}
+// packageFormRequest is a Packages-page form's repository, package and poster.
+type packageFormRequest struct {
+	Repo   *model.Repository
+	Pkg    *model.PackageSummary
+	UserID int64
+}
+
+// ownerPackageRequest is an owner Packages tab form's package and poster.
+type ownerPackageRequest struct {
+	Pkg    *model.PackageSummary
+	UserID int64
 }
 
 // packageForm resolves the package a Packages-page form names, which must be linked to the repository in the URL
 // and readable by the poster; anything else is a 404. What the poster may do with it is the caller's rule.
-func (h *Handler) packageForm(w http.ResponseWriter, r *http.Request) (*model.Repository, *model.PackageSummary, int64, bool) {
+func (h *Handler) packageForm(w http.ResponseWriter, r *http.Request) (packageFormRequest, bool) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return nil, nil, 0, false
+		return packageFormRequest{}, false
 	}
 	repo, ok := h.readableRepoPage(w, r, chi.URLParam(r, "owner"), chi.URLParam(r, "repo"))
 	if !ok {
-		return nil, nil, 0, false
+		return packageFormRequest{}, false
 	}
 	id, err := strconv.ParseInt(r.FormValue("package_id"), 10, 64)
 	if err != nil {
 		h.NotFound(w, r)
-		return nil, nil, 0, false
+		return packageFormRequest{}, false
 	}
 	p, err := h.Services.Package.InRepoByID(r.Context(), repo, &claims.UserID, id)
 	if err != nil {
@@ -345,9 +346,9 @@ func (h *Handler) packageForm(w http.ResponseWriter, r *http.Request) (*model.Re
 			slog.Error("package form: find failed", "repo_id", repo.ID, "error", err)
 			h.ServerError(w, r)
 		}
-		return nil, nil, 0, false
+		return packageFormRequest{}, false
 	}
-	return repo, p, claims.UserID, true
+	return packageFormRequest{Repo: repo, Pkg: p, UserID: claims.UserID}, true
 }
 
 // packageFormError answers a refused or failed change with the message the page shows as a toast.
@@ -372,147 +373,147 @@ func packageFormError(w http.ResponseWriter, r *http.Request, err error) {
 
 // DeletePackageTag handles POST /{owner}/{repo}/packages/tags/delete: a tag, or an untagged manifest by digest.
 func (h *Handler) DeletePackageTag(w http.ResponseWriter, r *http.Request) {
-	repo, p, userID, ok := h.packageForm(w, r)
+	form, ok := h.packageForm(w, r)
 	if !ok {
 		return
 	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, userID) {
+	if !h.Services.Repo.CanWrite(r.Context(), form.Repo, form.UserID) {
 		settingsError(w, r, http.StatusForbidden, "You can't change this package.")
 		return
 	}
-	if err := h.Services.Registry.DeleteManifest(r.Context(), userID, p.OwnerName+"/"+p.Name, r.FormValue("ref")); err != nil {
+	if err := h.Services.Registry.DeleteManifest(r.Context(), form.UserID, form.Pkg.OwnerName+"/"+form.Pkg.Name, r.FormValue("ref")); err != nil {
 		packageFormError(w, r, err)
 		return
 	}
-	redirectAfterSave(w, r, packageURL(repo, p.Type, p.Name))
+	redirectAfterSave(w, r, packageURL(form.Repo, form.Pkg.Type, form.Pkg.Name))
 }
 
 // DeletePackageVersion handles POST /{owner}/{repo}/packages/versions/delete. The package goes with its last
 // version, so the redirect goes to the list when it is gone.
 func (h *Handler) DeletePackageVersion(w http.ResponseWriter, r *http.Request) {
-	repo, p, userID, ok := h.packageForm(w, r)
+	form, ok := h.packageForm(w, r)
 	if !ok {
 		return
 	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, userID) {
+	if !h.Services.Repo.CanWrite(r.Context(), form.Repo, form.UserID) {
 		settingsError(w, r, http.StatusForbidden, "You can't change this package.")
 		return
 	}
-	if err := h.Services.Package.DeleteGenericVersion(r.Context(), repo.ID, p.Name, r.FormValue("version")); err != nil {
+	if err := h.Services.Package.DeleteGenericVersion(r.Context(), form.Repo.ID, form.Pkg.Name, r.FormValue("version")); err != nil {
 		packageFormError(w, r, err)
 		return
 	}
-	to := packageURL(repo, p.Type, p.Name)
-	if _, err := h.Services.Package.InRepoByID(r.Context(), repo, &userID, p.ID); errors.Is(err, service.ErrPackageNotFound) {
-		to = "/" + repo.OwnerName + "/" + repo.Name + "/packages"
+	to := packageURL(form.Repo, form.Pkg.Type, form.Pkg.Name)
+	if _, err := h.Services.Package.InRepoByID(r.Context(), form.Repo, &form.UserID, form.Pkg.ID); errors.Is(err, service.ErrPackageNotFound) {
+		to = "/" + form.Repo.OwnerName + "/" + form.Repo.Name + "/packages"
 	}
 	redirectAfterSave(w, r, to)
 }
 
 // DeletePackage handles POST /{owner}/{repo}/packages/delete; the whole package needs its name typed.
 func (h *Handler) DeletePackage(w http.ResponseWriter, r *http.Request) {
-	repo, p, userID, ok := h.packageForm(w, r)
+	form, ok := h.packageForm(w, r)
 	if !ok {
 		return
 	}
-	if !h.Services.Package.CanDelete(r.Context(), &p.Package, repo, userID) {
+	if !h.Services.Package.CanDelete(r.Context(), &form.Pkg.Package, form.Repo, form.UserID) {
 		settingsError(w, r, http.StatusForbidden, "You can't delete this package.")
 		return
 	}
-	if r.FormValue("confirm_name") != p.Name {
+	if r.FormValue("confirm_name") != form.Pkg.Name {
 		settingsError(w, r, http.StatusUnprocessableEntity, "Type the package name exactly as shown.")
 		return
 	}
-	if err := h.Services.Package.Delete(r.Context(), userID, p.ID); err != nil {
+	if err := h.Services.Package.Delete(r.Context(), form.UserID, form.Pkg.ID); err != nil {
 		packageFormError(w, r, err)
 		return
 	}
-	redirectAfterSave(w, r, "/"+repo.OwnerName+"/"+repo.Name+"/packages")
+	redirectAfterSave(w, r, "/"+form.Repo.OwnerName+"/"+form.Repo.Name+"/packages")
 }
 
 // RelinkPackageForm handles POST /{owner}/{repo}/packages/relink; repo names a Repository of the path owner.
 func (h *Handler) RelinkPackageForm(w http.ResponseWriter, r *http.Request) {
-	repo, p, userID, ok := h.packageForm(w, r)
+	form, ok := h.packageForm(w, r)
 	if !ok {
 		return
 	}
-	if !h.Services.Package.CanDelete(r.Context(), &p.Package, repo, userID) {
+	if !h.Services.Package.CanDelete(r.Context(), &form.Pkg.Package, form.Repo, form.UserID) {
 		settingsError(w, r, http.StatusForbidden, "You can't re-link this package.")
 		return
 	}
-	target, err := h.Services.Repo.Get(r.Context(), p.OwnerName, r.FormValue("repo"))
+	target, err := h.Services.Repo.Get(r.Context(), form.Pkg.OwnerName, r.FormValue("repo"))
 	if err != nil {
 		packageFormError(w, r, service.ErrRelinkTarget)
 		return
 	}
-	if err := h.Services.Package.Relink(r.Context(), userID, p.ID, target.ID); err != nil {
+	if err := h.Services.Package.Relink(r.Context(), form.UserID, form.Pkg.ID, target.ID); err != nil {
 		packageFormError(w, r, err)
 		return
 	}
-	redirectAfterSave(w, r, packageURL(target, p.Type, p.Name))
+	redirectAfterSave(w, r, packageURL(target, form.Pkg.Type, form.Pkg.Name))
 }
 
 // ownerPackageForm resolves the package an owner Packages tab form names. It must sit under the path in the URL and be
 // visible to the poster, else 404; only the path owner may change it, else 403.
-func (h *Handler) ownerPackageForm(w http.ResponseWriter, r *http.Request) (*model.PackageSummary, int64, bool) {
+func (h *Handler) ownerPackageForm(w http.ResponseWriter, r *http.Request) (ownerPackageRequest, bool) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return nil, 0, false
+		return ownerPackageRequest{}, false
 	}
 	id, err := strconv.ParseInt(r.FormValue("package_id"), 10, 64)
 	if err != nil {
 		h.NotFound(w, r)
-		return nil, 0, false
+		return ownerPackageRequest{}, false
 	}
 	p, err := h.Services.Package.InOwner(r.Context(), chi.URLParam(r, "owner"), &claims.UserID, id)
 	if errors.Is(err, service.ErrPackageNotFound) {
 		h.NotFound(w, r)
-		return nil, 0, false
+		return ownerPackageRequest{}, false
 	}
 	if err != nil {
 		slog.Error("owner package form: find failed", "package_id", id, "error", err)
 		h.ServerError(w, r)
-		return nil, 0, false
+		return ownerPackageRequest{}, false
 	}
 	if !h.Services.Package.IsPathOwner(r.Context(), p.OwnerName, claims.UserID) {
 		settingsError(w, r, http.StatusForbidden, "Only the owner of "+p.OwnerName+" can change its packages here.")
-		return nil, 0, false
+		return ownerPackageRequest{}, false
 	}
-	return p, claims.UserID, true
+	return ownerPackageRequest{Pkg: p, UserID: claims.UserID}, true
 }
 
 // DeleteOwnerPackage handles POST /{owner}/-/packages/delete; the whole package needs its name typed.
 func (h *Handler) DeleteOwnerPackage(w http.ResponseWriter, r *http.Request) {
-	p, userID, ok := h.ownerPackageForm(w, r)
+	form, ok := h.ownerPackageForm(w, r)
 	if !ok {
 		return
 	}
-	if r.FormValue("confirm_name") != p.Name {
+	if r.FormValue("confirm_name") != form.Pkg.Name {
 		settingsError(w, r, http.StatusUnprocessableEntity, "Type the package name exactly as shown.")
 		return
 	}
-	if err := h.Services.Package.Delete(r.Context(), userID, p.ID); err != nil {
+	if err := h.Services.Package.Delete(r.Context(), form.UserID, form.Pkg.ID); err != nil {
 		packageFormError(w, r, err)
 		return
 	}
-	redirectAfterSave(w, r, "/"+p.OwnerName+"?tab=packages")
+	redirectAfterSave(w, r, "/"+form.Pkg.OwnerName+"?tab=packages")
 }
 
 // RelinkOwnerPackage handles POST /{owner}/-/packages/relink; repo names a Repository of the path owner.
 func (h *Handler) RelinkOwnerPackage(w http.ResponseWriter, r *http.Request) {
-	p, userID, ok := h.ownerPackageForm(w, r)
+	form, ok := h.ownerPackageForm(w, r)
 	if !ok {
 		return
 	}
-	target, err := h.Services.Repo.Get(r.Context(), p.OwnerName, r.FormValue("repo"))
+	target, err := h.Services.Repo.Get(r.Context(), form.Pkg.OwnerName, r.FormValue("repo"))
 	if err != nil {
 		packageFormError(w, r, service.ErrRelinkTarget)
 		return
 	}
-	if err := h.Services.Package.Relink(r.Context(), userID, p.ID, target.ID); err != nil {
+	if err := h.Services.Package.Relink(r.Context(), form.UserID, form.Pkg.ID, target.ID); err != nil {
 		packageFormError(w, r, err)
 		return
 	}
-	redirectAfterSave(w, r, "/"+p.OwnerName+"?tab=packages")
+	redirectAfterSave(w, r, "/"+form.Pkg.OwnerName+"?tab=packages")
 }

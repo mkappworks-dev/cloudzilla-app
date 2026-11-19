@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	errManifestUnknown = regErr(http.StatusNotFound, "MANIFEST_UNKNOWN", "manifest unknown")
-	errDenied          = regErr(http.StatusForbidden, "DENIED", "requested access to the resource is denied")
+	errManifestUnknown = regErr(http.StatusNotFound, RegCodeManifestUnknown, "manifest unknown")
+	errDenied          = regErr(http.StatusForbidden, RegCodeDenied, "requested access to the resource is denied")
 
 	registryTagRe = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}$`)
 )
@@ -63,7 +63,7 @@ type manifestDoc struct {
 }
 
 func manifestInvalid(msg string) *RegistryError {
-	return regErr(http.StatusBadRequest, "MANIFEST_INVALID", msg)
+	return regErr(http.StatusBadRequest, RegCodeManifestInvalid, msg)
 }
 
 // parseManifest reads what a manifest of the given Content-Type names. Foreign layers, which carry URLs, are not
@@ -148,7 +148,7 @@ func sha256Digest(b []byte) string {
 func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, ref, mediaType string, body io.Reader) (digest, subject string, err error) {
 	isDigest := strings.Contains(ref, ":")
 	if isDigest && !ValidBlobDigest(ref) {
-		return "", "", regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+		return "", "", errDigestInvalid()
 	}
 	if !isDigest && !registryTagRe.MatchString(ref) {
 		return "", "", manifestInvalid("invalid tag")
@@ -162,7 +162,7 @@ func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, r
 		return "", "", err
 	}
 	if len(content) > maxManifestBytes {
-		return "", "", regErr(http.StatusRequestEntityTooLarge, "SIZE_INVALID", "manifest exceeds 4 MiB")
+		return "", "", regErr(http.StatusRequestEntityTooLarge, RegCodeSizeInvalid, "manifest exceeds 4 MiB")
 	}
 	rec, doc, err := parseManifest(mediaType, content)
 	if err != nil {
@@ -170,7 +170,7 @@ func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, r
 	}
 	rec.Digest = sha256Digest(content)
 	if isDigest && ref != rec.Digest {
-		return "", "", &RegistryError{Status: http.StatusBadRequest, Code: "DIGEST_INVALID", Message: "the digest does not match the manifest", Detail: map[string]string{"computed": rec.Digest}}
+		return "", "", &RegistryError{Status: http.StatusBadRequest, Code: RegCodeDigestInvalid, Message: "the digest does not match the manifest", Detail: map[string]string{"computed": rec.Digest}}
 	}
 
 	t, err := s.targetForPut(ctx, userID, name, rec, doc, true)
@@ -178,7 +178,7 @@ func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, r
 		// Docker PUTs several manifests of a fresh name at once; the one that lost the link now finds the package linked.
 		t, err = s.targetForPut(ctx, userID, name, rec, doc, false)
 		if errors.Is(err, errLinkRaced) {
-			err = regErr(http.StatusConflict, "DENIED", "the image name was linked by another push; retry")
+			err = regErr(http.StatusConflict, RegCodeDenied, "the image name was linked by another push; retry")
 		}
 	}
 	if err != nil {
@@ -187,7 +187,7 @@ func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, r
 	if err := s.packages.CheckQuota(ctx, t.quotaOwner(), 0); err != nil {
 		var q *PackageQuotaError
 		if errors.As(err, &q) {
-			return "", "", regErr(http.StatusForbidden, "DENIED", q.Error())
+			return "", "", regErr(http.StatusForbidden, RegCodeDenied, q.Error())
 		}
 		return "", "", err
 	}
@@ -211,7 +211,7 @@ func (s *RegistryService) targetForPut(ctx context.Context, userID int64, name s
 	if missing, err := s.unlinked(ctx, t.packageID, rec); err != nil {
 		return uploadTarget{}, err
 	} else if missing != "" {
-		return uploadTarget{}, &RegistryError{Status: http.StatusBadRequest, Code: "MANIFEST_BLOB_UNKNOWN", Message: "a blob or manifest the manifest names is not in this package", Detail: map[string]string{"digest": missing}}
+		return uploadTarget{}, &RegistryError{Status: http.StatusBadRequest, Code: RegCodeManifestBlobUnknown, Message: "a blob or manifest the manifest names is not in this package", Detail: map[string]string{"digest": missing}}
 	}
 	if !t.pending {
 		return t, nil
@@ -269,7 +269,7 @@ func (s *RegistryService) GetManifest(ctx context.Context, userID int64, name, r
 	byTag := !strings.Contains(ref, ":")
 	if !byTag {
 		if !ValidBlobDigest(ref) {
-			return nil, regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+			return nil, errDigestInvalid()
 		}
 		m, err = s.registry.ManifestByDigest(ctx, t.packageID, ref)
 	} else {
@@ -318,7 +318,7 @@ func acceptsMediaType(accept []string, mediaType string) bool {
 func (s *RegistryService) DeleteManifest(ctx context.Context, userID int64, name, ref string) error {
 	isDigest := strings.Contains(ref, ":")
 	if isDigest && !ValidBlobDigest(ref) {
-		return regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+		return errDigestInvalid()
 	}
 	t, err := s.writeTarget(ctx, userID, name, false)
 	if err != nil {
@@ -331,7 +331,7 @@ func (s *RegistryService) DeleteManifest(ctx context.Context, userID int64, name
 			return err
 		}
 		if child {
-			return regErr(http.StatusConflict, "DENIED", "the manifest is referenced by an index; delete the index first")
+			return regErr(http.StatusConflict, RegCodeDenied, "the manifest is referenced by an index; delete the index first")
 		}
 		found, err = s.registry.DeleteManifest(ctx, t.packageID, ref)
 	} else {
@@ -350,7 +350,7 @@ func (s *RegistryService) DeleteManifest(ctx context.Context, userID int64, name
 // the sweep, which deletes it once no package links it.
 func (s *RegistryService) DeleteBlob(ctx context.Context, userID int64, name, digest string) error {
 	if !ValidBlobDigest(digest) {
-		return regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+		return errDigestInvalid()
 	}
 	t, err := s.writeTarget(ctx, userID, name, false)
 	if err != nil {
@@ -361,7 +361,7 @@ func (s *RegistryService) DeleteBlob(ctx context.Context, userID int64, name, di
 		return err
 	}
 	if held {
-		return regErr(http.StatusConflict, "DENIED", "the blob is referenced by a manifest; delete the manifest first")
+		return regErr(http.StatusConflict, RegCodeDenied, "the blob is referenced by a manifest; delete the manifest first")
 	}
 	found, err := s.registry.UnlinkBlob(ctx, t.packageID, digest)
 	if err != nil {
@@ -377,7 +377,7 @@ func (s *RegistryService) DeleteBlob(ctx context.Context, userID int64, name, di
 // error: the subject may be pushed later, or live in another registry.
 func (s *RegistryService) Referrers(ctx context.Context, userID int64, name, subject, artifactType string) ([]store.Referrer, error) {
 	if !ValidBlobDigest(subject) {
-		return nil, regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+		return nil, errDigestInvalid()
 	}
 	t, err := s.readTarget(ctx, userID, name)
 	// The referrers API never answers 404; an unknown or unreadable name looks like a name with no referrers.

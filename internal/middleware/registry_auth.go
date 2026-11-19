@@ -52,7 +52,7 @@ func RegistryAuth(v RegistryVerifier, realm, serviceName string) func(http.Handl
 			c += `,error="` + errCode + `"`
 		}
 		w.Header().Set("WWW-Authenticate", c)
-		WriteRegistryError(w, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required", nil)
+		WriteRegistryError(w, http.StatusUnauthorized, service.RegCodeUnauthorized, "authentication required", nil)
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +88,7 @@ func RegistryAuth(v RegistryVerifier, realm, serviceName string) func(http.Handl
 					msg = fmt.Sprintf("the owner %q can never be a valid image path: names are lowercase letters and digits "+
 						"joined by single separators (. _ __ -), with no leading or trailing separator", owner)
 				}
-				WriteRegistryError(w, http.StatusBadRequest, "NAME_INVALID", msg, nil)
+				WriteRegistryError(w, http.StatusBadRequest, service.RegCodeNameInvalid, msg, nil)
 				return
 			}
 			action := service.RegistryActionFor(r.Method)

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -57,14 +56,13 @@ func (h *Handler) registryReferrers(w http.ResponseWriter, r *http.Request, rout
 		w.Header().Set("OCI-Filters-Applied", "artifactType")
 	}
 	w.Header().Set("Cache-Control", "private, no-cache")
-	w.Header().Set("Content-Type", "application/vnd.oci.image.index.v1+json")
-	w.WriteHeader(http.StatusOK)
+	const indexType = "application/vnd.oci.image.index.v1+json"
 	if r.Method == http.MethodHead {
+		w.Header().Set("Content-Type", indexType)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"schemaVersion": 2, "mediaType": "application/vnd.oci.image.index.v1+json", "manifests": manifests,
-	})
+	writeJSONAs(w, http.StatusOK, indexType, map[string]any{"schemaVersion": 2, "mediaType": indexType, "manifests": manifests})
 }
 
 func (h *Handler) registryDelete(w http.ResponseWriter, _ *http.Request, do func() error) {
@@ -80,7 +78,7 @@ func (h *Handler) registryListTags(w http.ResponseWriter, r *http.Request, route
 	if raw := r.URL.Query().Get("n"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n < 0 {
-			middleware.WriteRegistryError(w, http.StatusBadRequest, "PAGINATION_NUMBER_INVALID", "n must be a non-negative integer", nil)
+			middleware.WriteRegistryError(w, http.StatusBadRequest, service.RegCodePaginationNumberInvalid, "n must be a non-negative integer", nil)
 			return
 		}
 		limit = n

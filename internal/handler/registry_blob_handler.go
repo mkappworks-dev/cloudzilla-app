@@ -68,7 +68,7 @@ func writeRegistryFailure(w http.ResponseWriter, err error) {
 		middleware.WriteRegistryError(w, re.Status, re.Code, re.Message, re.Detail)
 		return
 	}
-	middleware.WriteRegistryError(w, http.StatusInternalServerError, "UNSUPPORTED", "registry error", nil)
+	middleware.WriteRegistryError(w, http.StatusInternalServerError, service.RegCodeUnsupported, "registry error", nil)
 }
 
 func blobLocation(name, digest string) string { return "/v2/" + name + "/blobs/" + digest }
@@ -173,7 +173,7 @@ func contentRange(w http.ResponseWriter, r *http.Request) (*service.ContentRange
 	start, err1 := strconv.ParseInt(a, 10, 64)
 	end, err2 := strconv.ParseInt(b, 10, 64)
 	if !ok || err1 != nil || err2 != nil || start < 0 || end < start {
-		middleware.WriteRegistryError(w, http.StatusBadRequest, "BLOB_UPLOAD_INVALID", "unreadable Content-Range", nil)
+		middleware.WriteRegistryError(w, http.StatusBadRequest, service.RegCodeBlobUploadInvalid, "unreadable Content-Range", nil)
 		return nil, false
 	}
 	return &service.ContentRange{Start: start, End: end}, true
@@ -209,14 +209,14 @@ func (h *Handler) registryGetBlob(w http.ResponseWriter, r *http.Request, route 
 		var ok bool
 		if start, end, ok = parseByteRange(spec, size); !ok {
 			w.Header().Set("Content-Range", "bytes */"+strconv.FormatInt(size, 10))
-			middleware.WriteRegistryError(w, http.StatusRequestedRangeNotSatisfiable, "BLOB_UPLOAD_INVALID", "range not satisfiable", nil)
+			middleware.WriteRegistryError(w, http.StatusRequestedRangeNotSatisfiable, service.RegCodeBlobUploadInvalid, "range not satisfiable", nil)
 			return
 		}
 		partial = true
 	}
 	// Backend has no ranged read, so the skipped bytes are read and dropped.
 	if _, err := io.CopyN(io.Discard, rc, start); err != nil {
-		middleware.WriteRegistryError(w, http.StatusInternalServerError, "UNSUPPORTED", "could not read blob", nil)
+		middleware.WriteRegistryError(w, http.StatusInternalServerError, service.RegCodeUnsupported, "could not read blob", nil)
 		return
 	}
 	w.Header().Set("Content-Length", strconv.FormatInt(end-start+1, 10))
