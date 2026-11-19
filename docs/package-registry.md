@@ -16,10 +16,14 @@ and generic-file API), [configuration](./configuration.md) (every key and `CZ_*`
 
 ## Path and linking
 
+Why the path has no repository segment, and why a same-named repository beats the label:
+[ADR 0005](./adr/0005-image-path-has-no-repository-segment.md).
+
 An image is `{host}/{owner}/{name}`: no repository segment, lowercase, `/` inside the name allowed
 (`git.example.com/ada/app/worker`). The **path owner** is the first segment, a user or an organization, resolved
 ignoring case. A name may contain segments called `blobs`, `manifests`, `tags` or `referrers`, so `/v2/*` is parsed from
-the right. `v2` is a reserved owner name; startup logs an existing account called `v2`.
+the right. `v2` is a reserved owner name; startup logs an existing account called `v2`. An owner whose name can never be
+a valid image path (one ending in `-`, for example) gets `400` `NAME_INVALID` naming the owner and the rule.
 
 Docker uploads layers before the manifest, so the first upload to a new name creates a **pending package**: no
 Repository, visible to nobody else, usable only by its creator, at most `registry.max_pending_per_user` per user, and
@@ -29,7 +33,9 @@ the path owner.
 The first manifest push **links** the package to a Repository, in this order:
 
 1. A Repository of the path owner named like the image's first segment (`ada/app` and `ada/app/worker` both match a
-   Repository `app`). It wins whatever the image says, and needs `CanWrite`; without it the push is `403`.
+   Repository `app`). It wins whatever the image says, and needs `CanWrite`; without it the push is `403`. A pusher who
+   can't read that Repository gets the same refusal as step 3, so a private Repository's name neither leaks nor falls
+   through to the label.
 2. Otherwise the image config's `org.opencontainers.image.source` label names a Repository of the path owner
    (`owner/repo` or a URL on `server.base_url`; a `.git` suffix, a trailing `/` and the host's case are ignored, another
    host is ignored). The caller needs `CanManage` there. The config is read only for this, capped at 1 MiB.
@@ -101,7 +107,7 @@ leak, and a reader who tries to push sees the same "unauthorized" Docker shows f
 Repository private stops anonymous pulls at once, and a soft-deleted Repository's packages disappear and come back on
 restore. Readers pull; writers push and delete tags, manifests and generic versions; deleting a whole package needs
 `CanManage` on the linked Repository, or being the path owner, and a typed name in the UI. A mount from another package
-needs `CanRead` on the source.
+needs `CanRead` on the source and counts against the target path owner's quota.
 
 - A Repository **rename** changes nothing: the path has no repository name.
 - A **transfer** leaves the package at its path, linked to the transferred Repository, so pulls keep working; the

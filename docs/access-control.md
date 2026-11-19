@@ -1295,7 +1295,8 @@ the package, or it is `MANIFEST_BLOB_UNKNOWN`. The first manifest push to a pend
 and a push to a linked package needs `CanWrite` on that Repository:
 
 1. A Repository of the path owner named like the image's first path segment wins, whatever the label says, and needs
-   `CanWrite`; without it the push is `403` `DENIED`.
+   `CanWrite`; without it the push is `403` `DENIED`. A pusher who can't read it gets the refusal of step 3, and the
+   label is not consulted, so a private Repository's name neither leaks nor can be claimed.
 2. Otherwise the config's `org.opencontainers.image.source` label names a Repository of the path owner (`owner/repo`, or
    a URL on `server.base_url`; a `.git` suffix, a trailing `/`, a path below the Repository and the host's case are
    ignored, another host's URL is not read) on which the caller has `CanManage`. A config over 1 MiB is not read.
